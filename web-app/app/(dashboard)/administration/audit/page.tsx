@@ -1,12 +1,5 @@
-﻿import { ModulePage } from '@/components/module-page';
+﻿import { AuditLogViewer } from '@/components/admin/audit-log-viewer';
 
 export default function Page() {
-  return (
-    <ModulePage
-      title="Audit Trail"
-      description="Track sensitive changes for compliance."
-      workflows={['User changes', 'Document changes', 'Role changes', 'Export audit']}
-      actions={[{ label: 'Open workflow', href: '#' }]}
-    />
-  );
+  return <AuditLogViewer />;
 }

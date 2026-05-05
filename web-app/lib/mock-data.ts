@@ -14,7 +14,7 @@ export const modules = [
   { title: 'Hajj & Umrah', href: '/hajj-umrah', icon: CalendarClock, summary: 'Pilgrim registration, requirements, groups, and religious travel docs.' },
   { title: 'Institutions', href: '/institutions', icon: Building2, summary: 'Partner institution records, collaboration, and document exchange.' },
   { title: 'Agents', href: '/agents', icon: BriefcaseBusiness, summary: 'Agent onboarding, training, performance, commissions, and support.' },
-  { title: 'Administration', href: '/administration', icon: BadgeCheck, summary: 'Users, roles, permissions, settings, logs, and audit trail.' },
+  { title: 'Administration', href: '/administration', icon: BadgeCheck, summary: 'Users, roles, permissions, settings, billing, logs, and audit trail.' },
   { title: 'Reporting & Analytics', href: '/reporting-analytics', icon: Activity, summary: 'Operational reports, financial reporting, analytics, and exports.' }
 ];
 

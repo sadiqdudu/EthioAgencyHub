@@ -1,12 +1,5 @@
-﻿import { ModulePage } from '@/components/module-page';
+﻿import { ProfileSettings } from '@/components/settings/profile-settings';
 
 export default function Page() {
-  return (
-    <ModulePage
-      title="Profile Settings"
-      description="Update user profile information."
-      workflows={['Name', 'Email', 'Agency', 'Contact']}
-      actions={[{ label: 'Open workflow', href: '#' }]}
-    />
-  );
+  return <ProfileSettings />;
 }

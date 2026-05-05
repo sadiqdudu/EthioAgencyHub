@@ -56,8 +56,11 @@ model Agency {
   employees Employee[]
   agents    Agent[]
   users     User[]
+  deletedAt DateTime?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+
+  @@index([deletedAt])
 }
 
 model Employee {
@@ -72,11 +75,13 @@ model Employee {
   status      EmployeeStatus @default(REGISTERED)
   documents   Document[]
   travels     Travel[]
+  deletedAt   DateTime?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
   @@index([agencyId])
   @@index([status])
+  @@index([deletedAt])
 }
 
 model Document {
@@ -87,11 +92,13 @@ model Document {
   filePath   String
   status     DocumentStatus @default(PENDING)
   expiresAt  DateTime?
+  deletedAt  DateTime?
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
   @@index([employeeId])
   @@index([type, status])
+  @@index([deletedAt])
 }
 
 model Travel {
@@ -102,11 +109,13 @@ model Travel {
   departureAt DateTime
   status      TravelStatus @default(SCHEDULED)
   ticket      String?
+  deletedAt   DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   @@index([employeeId])
   @@index([departureAt, status])
+  @@index([deletedAt])
 }
 
 model Agent {
@@ -116,10 +125,12 @@ model Agent {
   name      String
   phone     String?
   active    Boolean  @default(true)
+  deletedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([agencyId])
+  @@index([deletedAt])
 }
 
 model User {
@@ -129,8 +140,72 @@ model User {
   email        String   @unique
   passwordHash String
   role         Role     @default(VIEWER)
+  deletedAt    DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@index([agencyId])
+  @@index([deletedAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  agencyId   String
+  actorId    String?
+  action     String
+  resource   String
+  resourceId String?
+  metadata   Json?
+  deletedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([agencyId, createdAt])
+  @@index([resource, resourceId])
+  @@index([deletedAt])
+}
+
+model Institution {
+  id        String   @id @default(cuid())
+  agencyId  String
+  name      String
+  type      String?
+  contact   String?
+  country   String?
+  active    Boolean  @default(true)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agencyId])
+  @@index([deletedAt])
+}
+
+model Pilgrim {
+  id            String   @id @default(cuid())
+  agencyId      String
+  name          String
+  passportNo    String?
+  groupName     String?
+  season        String?
+  requirements  Json?
+  status        String   @default("REGISTERED")
+  departureDate DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([agencyId])
+  @@index([deletedAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenId   String   @unique
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenId])
 }

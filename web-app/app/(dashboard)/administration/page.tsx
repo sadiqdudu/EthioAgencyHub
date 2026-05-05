@@ -5,7 +5,7 @@ export default function Page() {
     <ModulePage
       title="Administration"
       description="Configure users, roles, permissions, settings, audit logs, and platform-level security controls."
-      workflows={['User management', 'Roles and permissions', 'System settings', 'Activity logs', 'Audit trail', 'Tenant controls']}
+      workflows={['User management', 'Roles and permissions', 'System settings', 'Subscription billing', 'Activity logs', 'Audit trail', 'Tenant controls']}
       actions={[{ label: 'Manage users', href: '/administration' }]}
     />
   );

@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { ReactNode } from 'react';
-import { Bell, ChevronDown, Globe2, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { Bell, Globe2, LayoutDashboard } from 'lucide-react';
 import { modules } from '@/lib/mock-data';
 import { siteConfig } from '@/config/site';
+import { UserMenu } from '@/components/layout/user-menu';
+import { getSession } from '@/lib/auth/session';
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const session = getSession();
   return (
     <div className="min-h-screen bg-slate-50">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-72 border-r border-slate-200 bg-white p-5 lg:block">
@@ -41,14 +44,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <button className="rounded-2xl border border-slate-200 p-3 text-slate-600 hover:bg-slate-50" type="button">
                 <Bell className="h-5 w-5" />
               </button>
-              <div className="hidden items-center gap-3 rounded-2xl border border-slate-200 px-4 py-2 md:flex">
-                <ShieldCheck className="h-5 w-5 text-brand-600" />
-                <div>
-                  <p className="text-sm font-semibold text-ink">Agency Admin</p>
-                  <p className="text-xs text-slate-500">RBAC protected</p>
-                </div>
-                <ChevronDown className="h-4 w-4 text-slate-400" />
-              </div>
+              <UserMenu role={session?.role ?? 'Guest'} email={session ? session.userId : undefined} />
             </div>
           </div>
         </header>

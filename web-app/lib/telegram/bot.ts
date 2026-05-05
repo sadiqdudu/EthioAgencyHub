@@ -1,4 +1,4 @@
-import { getTelegramConfig } from './config';
+import { getTelegramConfig, validateFileSize, validateFileExtension } from './config';
 
 type TelegramVideo = {
   file_id: string;
@@ -29,6 +29,8 @@ type TelegramGetFileResponse = {
 };
 
 const SHORT_VIDEO_MAX_MB = Number(process.env.TELEGRAM_SHORT_VIDEO_MAX_MB ?? 50);
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
 
 function getBotApiUrl(method: string) {
   const { botToken } = getTelegramConfig();
@@ -40,57 +42,134 @@ function getFileApiUrl(filePath: string) {
   return `https://api.telegram.org/file/bot${botToken}/${filePath}`;
 }
 
-export function assertShortVideo(file: File) {
-  if (!file.type.startsWith('video/')) {
-    throw new Error('Only video files are accepted for Telegram interview uploads.');
-  }
-
-  const maxBytes = SHORT_VIDEO_MAX_MB * 1024 * 1024;
-  if (file.size > maxBytes) {
-    throw new Error(`Short interview video must be ${SHORT_VIDEO_MAX_MB}MB or smaller.`);
-  }
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function uploadShortVideoToTelegram(file: File, caption?: string) {
-  assertShortVideo(file);
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = MAX_RETRIES
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      if (attempt < maxRetries - 1) {
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt);
+        await sleep(delay);
+      }
+    }
+  }
+  
+  throw lastError || new Error('All retry attempts failed');
+}
+
+export function validateVideoUpload(file: File): { valid: boolean; error?: string } {
+  if (!file.type.startsWith('video/')) {
+    return { valid: false, error: 'Only video files are accepted for Telegram interview uploads.' };
+  }
+  
+  const sizeValidation = validateFileSize(file.size);
+  if (!sizeValidation.valid) return sizeValidation;
+  
+  const extValidation = validateFileExtension(file.name, 'video');
+  if (!extValidation.valid) return extValidation;
+  
+  const maxBytes = SHORT_VIDEO_MAX_MB * 1024 * 1024;
+  if (file.size > maxBytes) {
+    return { valid: false, error: `Short interview video must be ${SHORT_VIDEO_MAX_MB}MB or smaller.` };
+  }
+  
+  return { valid: true };
+}
+
+export async function uploadShortVideoToTelegram(file: File, caption?: string): Promise<{
+  messageId: number;
+  fileId: string;
+  uniqueFileId: string;
+  fileSize?: number;
+  mimeType?: string;
+  duration?: number;
+}> {
+  const validation = validateVideoUpload(file);
+  if (!validation.valid) {
+    throw new Error(validation.error);
+  }
 
   const { channelId } = getTelegramConfig();
-  const formData = new FormData();
-  formData.set('chat_id', channelId);
-  formData.set('supports_streaming', 'true');
-  formData.set('video', file, file.name || 'interview-video.mp4');
+  
+  const uploadFn = async () => {
+    const formData = new FormData();
+    formData.set('chat_id', channelId);
+    formData.set('supports_streaming', 'true');
+    formData.set('video', file, file.name || 'interview-video.mp4');
 
-  if (caption) {
-    formData.set('caption', caption.slice(0, 1024));
-  }
+    if (caption) {
+      formData.set('caption', caption.slice(0, 1024));
+    }
 
-  const response = await fetch(getBotApiUrl('sendVideo'), {
-    method: 'POST',
-    body: formData
-  });
-  const payload = (await response.json()) as TelegramSendVideoResponse;
+    const response = await fetch(getBotApiUrl('sendVideo'), {
+      method: 'POST',
+      body: formData
+    });
+    const payload = (await response.json()) as TelegramSendVideoResponse;
 
-  if (!response.ok || !payload.ok || !payload.result?.video?.file_id) {
-    throw new Error(payload.description ?? 'Telegram video upload failed.');
-  }
+    if (!response.ok || !payload.ok || !payload.result?.video?.file_id) {
+      throw new Error(payload.description ?? 'Telegram video upload failed.');
+    }
 
+    return payload;
+  };
+
+  const result = await retryWithBackoff(uploadFn);
+  
   return {
-    messageId: payload.result.message_id,
-    fileId: payload.result.video.file_id,
-    uniqueFileId: payload.result.video.file_unique_id,
-    fileSize: payload.result.video.file_size,
-    mimeType: payload.result.video.mime_type,
-    duration: payload.result.video.duration
+    messageId: result.result!.message_id,
+    fileId: result.result!.video!.file_id,
+    uniqueFileId: result.result!.video!.file_unique_id,
+    fileSize: result.result!.video!.file_size,
+    mimeType: result.result!.video!.mime_type,
+    duration: result.result!.video!.duration
   };
 }
 
-export async function getTelegramFileUrl(fileId: string) {
-  const response = await fetch(getBotApiUrl(`getFile?file_id=${encodeURIComponent(fileId)}`), { cache: 'no-store' });
-  const payload = (await response.json()) as TelegramGetFileResponse;
+export async function getTelegramFileUrl(fileId: string): Promise<string> {
+  const fetchFn = async () => {
+    const response = await fetch(getBotApiUrl(`getFile?file_id=${encodeURIComponent(fileId)}`), { cache: 'no-store' });
+    const payload = (await response.json()) as TelegramGetFileResponse;
 
-  if (!response.ok || !payload.ok || !payload.result?.file_path) {
-    throw new Error(payload.description ?? 'Telegram file lookup failed.');
+    if (!response.ok || !payload.ok || !payload.result?.file_path) {
+      throw new Error(payload.description ?? 'Telegram file lookup failed.');
+    }
+
+    return payload;
+  };
+
+  const result = await retryWithBackoff(fetchFn);
+  return getFileApiUrl(result.result!.file_path || '');
+}
+
+export async function sendTelegramMessage(text: string, parseMode: 'Markdown' | 'HTML' = 'Markdown'): Promise<number> {
+  const { channelId } = getTelegramConfig();
+  
+  const response = await fetch(getBotApiUrl('sendMessage'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: channelId,
+      text: text.slice(0, 4096),
+      parse_mode: parseMode
+    })
+  });
+  
+  const payload = await response.json();
+  
+  if (!response.ok || !payload.ok) {
+    throw new Error(payload.description ?? 'Telegram message send failed.');
   }
-
-  return getFileApiUrl(payload.result.file_path);
+  
+  return payload.result.message_id;
 }
