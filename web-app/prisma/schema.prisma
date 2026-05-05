@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  AGENCY_ADMIN
+  AGENT
+  VIEWER
+}
+
+enum EmployeeStatus {
+  REGISTERED
+  DOCUMENT_REVIEW
+  MOLS_PENDING
+  INTERVIEW_UPLOADED
+  TRAVEL_READY
+  DEPLOYED
+  ARCHIVED
+}
+
+enum DocumentType {
+  PASSPORT
+  VISA
+  MOLS
+  MEDICAL
+  PHOTO
+  CONTRACT
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum TravelStatus {
+  SCHEDULED
+  TICKETED
+  READY
+  DEPARTED
+  ARRIVED
+  CANCELLED
+}
+
+model Agency {
+  id        String     @id @default(cuid())
+  name      String
+  employees Employee[]
+  agents    Agent[]
+  users     User[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Employee {
+  id          String         @id @default(cuid())
+  agency      Agency         @relation(fields: [agencyId], references: [id])
+  agencyId    String
+  name        String
+  role        String?
+  destination String?
+  docPath     String?
+  tgVideoId   String?
+  status      EmployeeStatus @default(REGISTERED)
+  documents   Document[]
+  travels     Travel[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([agencyId])
+  @@index([status])
+}
+
+model Document {
+  id         String         @id @default(cuid())
+  employee   Employee       @relation(fields: [employeeId], references: [id])
+  employeeId String
+  type       DocumentType
+  filePath   String
+  status     DocumentStatus @default(PENDING)
+  expiresAt  DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([employeeId])
+  @@index([type, status])
+}
+
+model Travel {
+  id          String       @id @default(cuid())
+  employee    Employee     @relation(fields: [employeeId], references: [id])
+  employeeId  String
+  destination String
+  departureAt DateTime
+  status      TravelStatus @default(SCHEDULED)
+  ticket      String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([employeeId])
+  @@index([departureAt, status])
+}
+
+model Agent {
+  id        String   @id @default(cuid())
+  agency    Agency   @relation(fields: [agencyId], references: [id])
+  agencyId  String
+  name      String
+  phone     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agencyId])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  agency       Agency   @relation(fields: [agencyId], references: [id])
+  agencyId     String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(VIEWER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([agencyId])
+}
