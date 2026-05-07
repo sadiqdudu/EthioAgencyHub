@@ -1,12 +1,7 @@
-﻿import { ModulePage } from '@/components/module-page';
+﻿'use client';
+
+import { EmployeeReportsModule } from '@/components/reporting/employee-reports-module';
 
 export default function Page() {
-  return (
-    <ModulePage
-      title="Employee Reports"
-      description="Analyze employee registration and deployment performance."
-      workflows={['Registration report', 'Deployment report', 'Status report', 'Skill report']}
-      actions={[{ label: 'Open workflow', href: '#' }]}
-    />
-  );
+  return <EmployeeReportsModule />;
 }

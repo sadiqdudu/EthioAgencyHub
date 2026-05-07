@@ -42,7 +42,35 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const existing = await db.employee.findFirst({ where: { id: params.id, agencyId: session.agencyId } });
     if (!existing) return notFound('Employee not found');
 
-    const updated = await db.employee.update({ where: { id: params.id }, data: parsed.data });
+    const { personal, skills, documents, ...rest } = parsed.data;
+    
+    const data: any = {
+      ...rest,
+      ...personal,
+      ...skills,
+    };
+
+    if (personal?.firstName && personal?.lastName) {
+      data.name = `${personal.firstName} ${personal.lastName}`.trim();
+    } else if (personal?.firstName || personal?.lastName) {
+      // If only one is provided, we might need to fetch the other or just update what we have
+      // For simplicity, we'll just update the individual fields
+    }
+
+    if (skills?.languages) {
+      data.languages = JSON.stringify(skills.languages);
+    }
+    
+    if (documents?.docPath) data.docPath = documents.docPath;
+    if (documents?.tgVideoId) {
+      data.tgVideoId = documents.tgVideoId;
+      data.status = 'INTERVIEW_UPLOADED';
+    }
+
+    if (personal?.dateOfBirth) data.dateOfBirth = new Date(personal.dateOfBirth);
+    if (personal?.passportExpiryDate) data.passportExpiryDate = new Date(personal.passportExpiryDate);
+
+    const updated = await db.employee.update({ where: { id: params.id }, data });
     return ok(updated);
   } catch (error) {
     const authRes = handleAuthError(error);

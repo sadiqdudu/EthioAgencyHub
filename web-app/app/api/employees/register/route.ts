@@ -7,15 +7,33 @@ import { writeAuditLog } from '@/lib/audit/log';
 
 const registerEmployeeSchema = z.object({
   personal: z.object({
-    name: z.string().min(2),
-    contactPhone: z.string().optional(),
-    emergencyContact: z.string().optional()
+    firstName: z.string().min(1),
+    lastName: z.string().min(1),
+    email: z.string().email().optional().or(z.literal('')),
+    contactPhone: z.string().min(5),
+    emergencyContact: z.string().min(1),
+    dateOfBirth: z.string().optional(),
+    gender: z.string().optional(),
+    maritalStatus: z.string().optional(),
+    nationality: z.string().optional(),
+    region: z.string().optional(),
+    zone: z.string().optional(),
+    alternatePhone: z.string().optional(),
+    emergencyPhone: z.string().optional(),
+    nationalId: z.string().optional(),
+    laborId: z.string().optional(),
+    passportNumber: z.string().optional(),
+    passportExpiryDate: z.string().optional(),
+    fatherName: z.string().optional(),
+    motherName: z.string().optional()
   }),
   skills: z.object({
     role: z.string().optional(),
+    education: z.string().optional(),
+    experience: z.string().optional(),
     destination: z.string().optional(),
     languages: z.array(z.string()).optional(),
-    experienceYears: z.number().int().nonnegative().optional()
+    additionalSkills: z.string().optional()
   }).optional(),
   documents: z.object({
     docPath: z.string().optional(),
@@ -33,14 +51,19 @@ export async function POST(req: Request) {
       return validationError('Invalid employee registration payload', parsed.error.flatten());
     }
 
+    const { personal, skills, documents } = parsed.data;
+
     const data = {
       agencyId: session.agencyId,
-      name: parsed.data.personal.name,
-      role: parsed.data.skills?.role,
-      destination: parsed.data.skills?.destination,
-      docPath: parsed.data.documents?.docPath,
-      tgVideoId: parsed.data.documents?.tgVideoId,
-      status: parsed.data.documents?.tgVideoId ? 'INTERVIEW_UPLOADED' as const : 'REGISTERED' as const
+      name: `${personal.firstName} ${personal.lastName}`.trim(),
+      ...personal,
+      ...skills,
+      languages: skills?.languages ? JSON.stringify(skills.languages) : undefined,
+      docPath: documents?.docPath,
+      tgVideoId: documents?.tgVideoId,
+      status: documents?.tgVideoId ? 'INTERVIEW_UPLOADED' as const : 'REGISTERED' as const,
+      dateOfBirth: personal.dateOfBirth ? new Date(personal.dateOfBirth) : undefined,
+      passportExpiryDate: personal.passportExpiryDate ? new Date(personal.passportExpiryDate) : undefined,
     };
 
     if (!isDatabaseConfigured()) {

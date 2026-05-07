@@ -1,5 +1,7 @@
-﻿import { AuditLogViewer } from '@/components/admin/audit-log-viewer';
+﻿'use client';
+
+import { AuditTrailModule } from '@/components/admin/audit-trail-module';
 
 export default function Page() {
-  return <AuditLogViewer />;
+  return <AuditTrailModule />;
 }

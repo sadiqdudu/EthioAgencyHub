@@ -1,39 +1,23 @@
-import Link from 'next/link';
-import { ReactNode } from 'react';
-import { Bell, Globe2, LayoutDashboard } from 'lucide-react';
-import { modules } from '@/lib/mock-data';
-import { siteConfig } from '@/config/site';
-import { UserMenu } from '@/components/layout/user-menu';
-import { getSession } from '@/lib/auth/session';
+'use client';
 
-export function AppShell({ children }: { children: ReactNode }) {
-  const session = getSession();
+import { ReactNode } from 'react';
+import { Bell } from 'lucide-react';
+import { UserMenu } from '@/components/layout/user-menu';
+import { Sidebar } from '@/components/layout/sidebar';
+import { LanguageSelector } from '@/components/layout/language-selector';
+import { useSidebar } from '@/components/layout/sidebar-provider';
+import { useLanguage } from '@/components/layout/language-provider';
+import type { SessionPayload } from '@/lib/auth/jwt';
+
+export function AppShell({ children, session }: { children: ReactNode; session: SessionPayload | null }) {
+  const { isOpen } = useSidebar();
+  const { language, dict, setLanguage } = useLanguage();
+
   return (
     <div className="min-h-screen bg-slate-50">
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-72 border-r border-slate-200 bg-white p-5 lg:block">
-        <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-600 text-white">
-            <Globe2 className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="font-bold text-ink">{siteConfig.name}</p>
-            <p className="text-xs text-slate-500">Agency operations SaaS</p>
-          </div>
-        </Link>
+      <Sidebar dict={dict} />
 
-        <nav className="mt-8 space-y-1">
-          <Link href="/dashboard" className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700">
-            <LayoutDashboard className="h-5 w-5" /> Dashboard
-          </Link>
-          {modules.map((item) => (
-            <Link key={item.href} href={item.href} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-ink">
-              <item.icon className="h-5 w-5" /> {item.title}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-
-      <div className="lg:pl-72">
+      <div className={`transition-all duration-300 lg:ml-0 ${isOpen ? 'lg:pl-72' : 'lg:pl-0'}`}>
         <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/85 px-5 py-4 backdrop-blur lg:px-8">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -41,9 +25,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               <h1 className="text-xl font-bold text-ink">Foreign Employment Operations</h1>
             </div>
             <div className="flex items-center gap-3">
-              <button className="rounded-2xl border border-slate-200 p-3 text-slate-600 hover:bg-slate-50" type="button">
+              <button className="rounded-2xl border border-slate-200 p-3 text-slate-600 hover:bg-slate-50" type="button" aria-label="Notifications">
                 <Bell className="h-5 w-5" />
               </button>
+              <LanguageSelector currentLanguage={language} onLanguageChange={setLanguage} />
               <UserMenu role={session?.role ?? 'Guest'} email={session ? session.userId : undefined} />
             </div>
           </div>

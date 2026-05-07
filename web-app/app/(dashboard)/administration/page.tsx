@@ -1,12 +1,7 @@
-﻿import { ModulePage } from '@/components/module-page';
+﻿'use client';
+
+import { AdministrationOverviewModule } from '@/components/admin/administration-overview-module';
 
 export default function Page() {
-  return (
-    <ModulePage
-      title="Administration"
-      description="Configure users, roles, permissions, settings, audit logs, and platform-level security controls."
-      workflows={['User management', 'Roles and permissions', 'System settings', 'Subscription billing', 'Activity logs', 'Audit trail', 'Tenant controls']}
-      actions={[{ label: 'Manage users', href: '/administration' }]}
-    />
-  );
+  return <AdministrationOverviewModule />;
 }

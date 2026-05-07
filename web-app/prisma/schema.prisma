@@ -64,24 +64,85 @@ model Agency {
 }
 
 model Employee {
-  id          String         @id @default(cuid())
-  agency      Agency         @relation(fields: [agencyId], references: [id])
-  agencyId    String
-  name        String
-  role        String?
-  destination String?
-  docPath     String?
-  tgVideoId   String?
-  status      EmployeeStatus @default(REGISTERED)
-  documents   Document[]
-  travels     Travel[]
-  deletedAt   DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id                  String         @id @default(cuid())
+  agency              Agency         @relation(fields: [agencyId], references: [id])
+  agencyId            String
+  
+  // Legacy field - keeping for backward compatibility
+  name                String
+  
+  // Personal Information (from new registration form)
+  firstName           String?
+  lastName            String?
+  email               String?
+  dateOfBirth         DateTime?
+  gender              String?
+  maritalStatus       String?
+  nationality         String?
+  region              String?
+  zone                String?
+  contactPhone        String?
+  alternatePhone      String?
+  emergencyContact    String?
+  emergencyPhone      String?
+  
+  // IDs & Passport (NEW)
+  nationalId          String?
+  laborId             String?
+  passportNumber      String?
+  passportExpiryDate  DateTime?
+  
+  // Family Information (NEW)
+  fatherName          String?
+  motherName          String?
+  
+  // Skills & Qualifications
+  role                String?
+  education           String?
+  experience          String?
+  destination         String?
+  languages           String?        // JSON array stored as string
+  additionalSkills    String?
+  
+  // Documents
+  docPath             String?
+  tgVideoId           String?
+  
+  // Status & Tracking
+  status              EmployeeStatus @default(REGISTERED)
+  documents           Document[]
+  travels             Travel[]
+  selectedByAgent     String?
+  selectedAt          DateTime?
+  deletedAt           DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
   @@index([agencyId])
   @@index([status])
   @@index([deletedAt])
+  @@index([selectedByAgent])
+  @@index([email])
+}
+
+model EmployeeDraft {
+  id        String    @id @default(cuid())
+  agency   Agency    @relation(fields: [agencyId], references: [id])
+  agencyId String
+  
+  // Draft data stored as JSON strings
+  personal     String   // JSON string of personal data
+  skills       String?  // JSON string of skills data
+  documents    String?  // JSON string of documents data
+  step         Int      @default(0) // Current step in registration wizard (0-3)
+  
+  deletedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([agencyId])
+  @@index([deletedAt])
+  @@index([createdAt])
 }
 
 model Document {

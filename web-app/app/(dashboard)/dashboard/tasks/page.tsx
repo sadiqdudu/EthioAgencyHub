@@ -1,12 +1,7 @@
-﻿import { ModulePage } from '@/components/module-page';
+﻿'use client';
 
-export default function Page() {
-  return (
-    <ModulePage
-      title="Dashboard Tasks"
-      description="Manage priority operational tasks and follow-ups."
-      workflows={['Pending approvals', 'Document reminders', 'Travel checklist', 'Agent follow-up']}
-      actions={[{ label: 'Open workflow', href: '#' }]}
-    />
-  );
+import { TasksModule } from '@/components/dashboard/tasks-module';
+
+export default function TasksPage() {
+  return <TasksModule />;
 }

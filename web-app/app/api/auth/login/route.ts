@@ -8,6 +8,7 @@ import { SESSION_COOKIE_NAME, REFRESH_COOKIE_NAME, CSRF_COOKIE_NAME, sessionCook
 import { serverError, unauthorized, validationError } from '@/lib/api/responses';
 import { writeAuditLog } from '@/lib/audit/log';
 import { getClientKey, rateLimit } from '@/lib/security/rate-limit';
+import { demoUsers } from '@/lib/mock-data';
 
 export async function POST(req: Request) {
   const limit = rateLimit(getClientKey(req, 'login'), 10, 60_000);
@@ -25,8 +26,32 @@ export async function POST(req: Request) {
     return validationError('Invalid login payload', parsed.error.flatten());
   }
 
+  // Demo login when database is not configured
   if (!isDatabaseConfigured()) {
-    return unauthorized('Database is not configured for authentication.');
+    const demoUser = demoUsers.find(u => u.email === parsed.data.email && u.password === parsed.data.password);
+    
+    if (!demoUser) {
+      return unauthorized('Invalid demo credentials. Try: admin@ethioagency.com / admin123');
+    }
+
+    const sessionToken = signSessionToken({ userId: demoUser.id, agencyId: demoUser.agencyId, role: demoUser.role as any });
+    const refreshToken = generateRefreshToken(demoUser.id, 1);
+    const csrfToken = generateCsrfToken();
+
+    const response = NextResponse.json({
+      success: true,
+      data: { 
+        user: { id: demoUser.id, email: demoUser.email, agencyId: demoUser.agencyId, role: demoUser.role },
+        csrfToken,
+        isDemo: true
+      }
+    });
+
+    response.cookies.set(SESSION_COOKIE_NAME, sessionToken, sessionCookieOptions);
+    response.cookies.set(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
+    response.cookies.set(CSRF_COOKIE_NAME, csrfToken, csrfCookieOptions);
+    
+    return response;
   }
 
   try {

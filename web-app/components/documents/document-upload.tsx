@@ -64,7 +64,7 @@ export function DocumentUpload({ employeeId }: { employeeId?: string }) {
       {files.length > 0 ? (
         <ul className="mt-4 space-y-1 text-sm text-slate-600">
           {files.map((file) => (
-            <li key={file.name} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-2">
+            <li key={`${file.name}-${file.lastModified}`} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-2">
               <span className="truncate">{file.name}</span>
               <span className="text-xs text-slate-400">{(file.size / 1024).toFixed(0)} KB</span>
             </li>

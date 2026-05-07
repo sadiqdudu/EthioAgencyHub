@@ -1,12 +1,9 @@
-﻿import { ModulePage } from '@/components/module-page';
+import { RegistrationWizard } from '@/components/employees/registration-wizard';
 
 export default function Page() {
   return (
-    <ModulePage
-      title="Registration Review"
-      description="Review employee registration before final submission."
-      workflows={['Data validation', 'Document checklist', 'Interview status', 'Submit employee']}
-      actions={[{ label: 'Open workflow', href: '#' }]}
-    />
+    <div id="wizard">
+      <RegistrationWizard initialStep={3} />
+    </div>
   );
 }

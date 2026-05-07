@@ -1,4 +1,5 @@
 ﻿import { DocumentUpload } from '@/components/documents/document-upload';
+import { DocumentsUpload } from '@/components/documents/documents-upload';
 import { ModulePage } from '@/components/module-page';
 
 export default function Page() {
@@ -13,6 +14,7 @@ export default function Page() {
       <div id="upload">
         <DocumentUpload />
       </div>
+      <DocumentsUpload />
     </div>
   );
 }

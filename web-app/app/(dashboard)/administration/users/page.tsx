@@ -1,5 +1,7 @@
-﻿import { UserManagement } from '@/components/admin/user-management';
+﻿'use client';
+
+import { UserManagementModule } from '@/components/admin/user-management-module';
 
 export default function Page() {
-  return <UserManagement />;
+  return <UserManagementModule />;
 }

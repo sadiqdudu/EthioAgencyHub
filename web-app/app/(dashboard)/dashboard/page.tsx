@@ -1,5 +1,7 @@
-import { DashboardHome } from '@/components/dashboard/dashboard-home';
+'use client';
 
-export default function DashboardPage() {
-  return <DashboardHome />;
+import { DashboardOverviewModule } from '@/components/dashboard/dashboard-overview-module';
+
+export default function Page() {
+  return <DashboardOverviewModule />;
 }

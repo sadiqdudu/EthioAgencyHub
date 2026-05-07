@@ -1,5 +1,7 @@
-import { PlanSelector } from '@/components/billing/plan-selector';
+'use client';
+
+import { BillingModule } from '@/components/admin/billing-module';
 
 export default function BillingPage() {
-  return <PlanSelector />;
+  return <BillingModule />;
 }

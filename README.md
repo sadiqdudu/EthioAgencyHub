@@ -770,7 +770,7 @@ npm run build
 docker-compose up --build
 
 # Production
-docker-compose -f docker-compose.prod.yml up -d
+docker-compose up -d
 ```
 
 ### CI/CD Pipeline (GitHub Actions)
