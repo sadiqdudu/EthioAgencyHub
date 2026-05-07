@@ -14,7 +14,7 @@ type Props = {
 
 export function Sidebar({ dict }: Props) {
   const { isOpen, toggle } = useSidebar();
-  const [expandedModules, setExpandedModules] = useState<string[]>([]);
+  const [expandedModules, setExpandedModules] = useState<string[]>(['Dashboard']);
 
   const toggleModule = (moduleTitle: string) => {
     setExpandedModules((prev) =>
@@ -42,7 +42,7 @@ export function Sidebar({ dict }: Props) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-20 flex w-72 flex-col border-r border-slate-200 bg-white transition-all duration-300 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-20 flex w-72 flex-col border-r border-slate-200 bg-white transition-all duration-300 lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -70,32 +70,50 @@ export function Sidebar({ dict }: Props) {
         {/* Navigation */}
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {/* Dashboard Home */}
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 rounded-xl bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100"
-          >
-            <LayoutDashboard className="h-5 w-5 shrink-0" />
-            <span>{dict.common.dashboard}</span>
-          </Link>
-          <div className="ml-6 space-y-1 border-l border-slate-200 py-1 pl-3">
-            <Link
-              href="/dashboard/trends"
-              className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-            >
-              <span className="truncate">Trends</span>
-            </Link>
-            <Link
-              href="/dashboard/tasks"
-              className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-            >
-              <span className="truncate">Tasks</span>
-            </Link>
-            <Link
-              href="/dashboard/activities"
-              className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-            >
-              <span className="truncate">Activities</span>
-            </Link>
+          <div className="mb-1">
+            <div className="flex items-center gap-0">
+              <Link
+                href="/dashboard"
+                className="flex flex-1 items-center gap-3 rounded-xl bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100"
+              >
+                <LayoutDashboard className="h-5 w-5 shrink-0" />
+                <span className="truncate">{dict.common.dashboard}</span>
+              </Link>
+              <button
+                onClick={() => toggleModule('Dashboard')}
+                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                type="button"
+                aria-label="Toggle Dashboard submenu"
+              >
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    expandedModules.includes('Dashboard') ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+            </div>
+            {expandedModules.includes('Dashboard') && (
+              <div className="ml-6 mt-1 space-y-1 border-l border-slate-200 py-1 pl-3">
+                <Link
+                  href="/dashboard/trends"
+                  className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                >
+                  <span className="truncate">Trends</span>
+                </Link>
+                <Link
+                  href="/dashboard/tasks"
+                  className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                >
+                  <span className="truncate">Tasks</span>
+                </Link>
+                <Link
+                  href="/dashboard/activities"
+                  className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                >
+                  <span className="truncate">Activities</span>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Module Groups */}

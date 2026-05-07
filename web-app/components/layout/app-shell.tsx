@@ -17,7 +17,7 @@ export function AppShell({ children, session }: { children: ReactNode; session: 
     <div className="min-h-screen bg-slate-50">
       <Sidebar dict={dict} />
 
-      <div className={`transition-all duration-300 lg:ml-0 ${isOpen ? 'lg:pl-72' : 'lg:pl-0'}`}>
+      <div className="transition-all duration-300 lg:ml-0 lg:pl-72">
         <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/85 px-5 py-4 backdrop-blur lg:px-8">
           <div className="flex items-center justify-between gap-4">
             <div>

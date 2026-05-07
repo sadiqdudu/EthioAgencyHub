@@ -1,4 +1,4 @@
-import { handleAuthError, serverError } from '@/lib/api/responses';
+import { handleAuthError, serverError, ok } from '@/lib/api/responses';
 import { requireRole } from '@/lib/auth/session';
 import { db } from '@/lib/db/prisma';
 import { isDatabaseConfigured, isDatabaseConnectionError } from '@/lib/db/errors';
@@ -9,17 +9,14 @@ export async function GET(req: Request) {
     
     if (!isDatabaseConfigured()) {
       // Return mock stats for development
-      return {
-        success: true,
-        data: {
-          total: 156,
-          registered: 45,
-          documentReview: 28,
-          interviewUploaded: 32,
-          travelReady: 38,
-          deployed: 13
-        }
-      };
+      return ok({
+        total: 156,
+        registered: 45,
+        documentReview: 28,
+        interviewUploaded: 32,
+        travelReady: 38,
+        deployed: 13
+      });
     }
 
     const [
@@ -63,17 +60,14 @@ export async function GET(req: Request) {
       })
     ];
 
-    return {
-      success: true,
-      data: {
-        total,
-        registered,
-        documentReview,
-        interviewUploaded,
-        travelReady,
-        deployed
-      }
-    };
+    return ok({
+      total,
+      registered,
+      documentReview,
+      interviewUploaded,
+      travelReady,
+      deployed
+    });
   } catch (error) {
     const authRes = handleAuthError(error);
     if (authRes) return authRes;
