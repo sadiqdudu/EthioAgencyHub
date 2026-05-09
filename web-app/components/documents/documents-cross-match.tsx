@@ -127,7 +127,7 @@ export function DocumentsCrossMatch() {
               {filteredResults.length === 0 ? (
                 <tr>
                   <td className="px-6 py-6 text-slate-500 text-center" colSpan={6}>
-                    No verification records found matching "{searchQuery}".
+                    No verification records found matching &quot;{searchQuery}&quot;.
                   </td>
                 </tr>
               ) : filteredResults.map((result) => (

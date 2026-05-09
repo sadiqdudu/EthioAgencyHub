@@ -168,7 +168,7 @@ export class TeledriveWatcher extends EventEmitter {
       fileName,
       relativePath,
       timestamp: new Date(),
-      size: stats?.size
+      size: stats?.size ? Number(stats.size) : undefined
     };
 
     console.log(`[TeledriveWatcher] New file detected: ${filename} (${stats?.size || 'unknown'} bytes)`);
@@ -187,10 +187,10 @@ export class TeledriveWatcher extends EventEmitter {
       fileName,
       relativePath,
       timestamp: new Date(),
-      size: stats?.size
+      size: stats?.size ? Number(stats.size) : undefined
     };
 
-    console.log(`[TeledriveWatcher] File changed: ${filename} (${stats?.size || 'unknown'} bytes)`);
+    console.log(`[TeledriveWatcher] File changed: ${filename} (${stats?.size ? Number(stats.size) : 'unknown'} bytes)`);
     this.emit('file:change', event);
   }
 
