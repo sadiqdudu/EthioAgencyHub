@@ -58,7 +58,7 @@ export async function GET(req: Request) {
           status: 'DEPLOYED' 
         } 
       })
-    ];
+    ]);
 
     return ok({
       total,

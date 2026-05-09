@@ -1,8 +1,20 @@
 'use client';
 
-import { Landmark } from 'lucide-react';
+import { useState } from 'react';
+import { Landmark, Search } from 'lucide-react';
 
 export function DocumentsMols() {
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const batches = [
+    { batch: 'Batch #45', employees: 28, submitted: '18 Apr', status: 'Approved', daysAgo: '2 days' },
+    { batch: 'Batch #46', employees: 32, submitted: '20 Apr', status: 'Under Review', daysAgo: '1 day' },
+    { batch: 'Batch #47', employees: 25, submitted: '22 Apr', status: 'Issues Found', daysAgo: '3 hours' },
+    { batch: 'Batch #48', employees: 21, submitted: '24 Apr', status: 'Pending Submission', daysAgo: 'Today' },
+  ];
+  
+  const filteredBatches = batches.filter(b => b.batch.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
     <div className="space-y-8">
       <div>
@@ -36,17 +48,28 @@ export function DocumentsMols() {
 
       {/* MOLS Batches */}
       <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+        <div className="border-b border-slate-200 px-6 py-4 flex flex-wrap gap-4 items-center justify-between">
           <h3 className="text-lg font-bold text-ink">MOLS Submission Batches</h3>
-          <button className="text-sm font-medium text-brand-600 hover:text-brand-700">+ New Batch</button>
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="relative max-w-sm w-full">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search batches..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+            <button className="text-sm font-medium text-brand-600 hover:text-brand-700 whitespace-nowrap">+ New Batch</button>
+          </div>
         </div>
         <div className="divide-y divide-slate-100">
-          {[
-            { batch: 'Batch #45', employees: 28, submitted: '18 Apr', status: 'Approved', daysAgo: '2 days' },
-            { batch: 'Batch #46', employees: 32, submitted: '20 Apr', status: 'Under Review', daysAgo: '1 day' },
-            { batch: 'Batch #47', employees: 25, submitted: '22 Apr', status: 'Issues Found', daysAgo: '3 hours' },
-            { batch: 'Batch #48', employees: 21, submitted: '24 Apr', status: 'Pending Submission', daysAgo: 'Today' },
-          ].map((batch, idx) => (
+          {filteredBatches.length === 0 ? (
+            <div className="px-6 py-8 text-center text-slate-500">
+              No batches found matching "{searchQuery}".
+            </div>
+          ) : filteredBatches.map((batch, idx) => (
             <div key={idx} className="px-6 py-4 hover:bg-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Landmark className="h-5 w-5 text-slate-400" />

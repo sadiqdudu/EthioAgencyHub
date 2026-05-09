@@ -136,7 +136,7 @@ export function EmployeeCard({ employee, agentId, onSelect, viewOnly = false }: 
             <p className="text-xs text-slate-400 mb-2 font-medium">Languages:</p>
             <div className="flex flex-wrap gap-2">
               <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">Amharic (Native)</span>
-              <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">English (Intermediate)</span>
+              <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">Oromo (Fluent)</span>
               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">Arabic (Basic)</span>
             </div>
           </div>
@@ -199,7 +199,7 @@ export function EmployeeCard({ employee, agentId, onSelect, viewOnly = false }: 
                   </h4>
                   <ul className="text-sm text-slate-800 pl-6 space-y-1">
                     <li>Amharic (Native)</li>
-                    <li>English (Intermediate)</li>
+                    <li>Oromo (Fluent)</li>
                     <li>Arabic (Basic)</li>
                   </ul>
                 </div>

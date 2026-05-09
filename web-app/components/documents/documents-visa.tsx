@@ -1,8 +1,20 @@
 'use client';
 
-import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Clock, CheckCircle2, AlertCircle, Search } from 'lucide-react';
 
 export function DocumentsVisa() {
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const applications = [
+    { employee: 'Mekdes Tesfaye', destination: 'Saudi Arabia', status: 'Approved', applied: '15 Apr', icon: CheckCircle2, color: 'text-green-600' },
+    { employee: 'Hana Bekele', destination: 'UAE', status: 'In Review', applied: '18 Apr', icon: Clock, color: 'text-blue-600' },
+    { employee: 'Selamawit Alemu', destination: 'Qatar', status: 'Pending Documents', applied: '20 Apr', icon: AlertCircle, color: 'text-yellow-600' },
+    { employee: 'Rahel Tadesse', destination: 'Kuwait', status: 'Rejected', applied: '12 Apr', icon: AlertCircle, color: 'text-red-600' },
+  ];
+
+  const filteredApps = applications.filter(app => app.employee.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
     <div className="space-y-8">
       <div>
@@ -36,8 +48,18 @@ export function DocumentsVisa() {
 
       {/* Visa Applications Table */}
       <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="border-b border-slate-200 px-6 py-4">
+        <div className="border-b border-slate-200 px-6 py-4 flex flex-wrap gap-4 items-center justify-between">
           <h3 className="text-lg font-bold text-ink">Visa Applications</h3>
+          <div className="relative max-w-sm w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by employee name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -51,12 +73,13 @@ export function DocumentsVisa() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {[
-                { employee: 'Mekdes Tesfaye', destination: 'Saudi Arabia', status: 'Approved', applied: '15 Apr', icon: CheckCircle2, color: 'text-green-600' },
-                { employee: 'Hana Bekele', destination: 'UAE', status: 'In Review', applied: '18 Apr', icon: Clock, color: 'text-blue-600' },
-                { employee: 'Selamawit Alemu', destination: 'Qatar', status: 'Pending Documents', applied: '20 Apr', icon: AlertCircle, color: 'text-yellow-600' },
-                { employee: 'Rahel Tadesse', destination: 'Kuwait', status: 'Rejected', applied: '12 Apr', icon: AlertCircle, color: 'text-red-600' },
-              ].map((app, idx) => (
+              {filteredApps.length === 0 ? (
+                <tr>
+                  <td className="px-6 py-6 text-slate-500 text-center" colSpan={5}>
+                    No visa applications found matching "{searchQuery}".
+                  </td>
+                </tr>
+              ) : filteredApps.map((app, idx) => (
                 <tr key={idx} className="hover:bg-slate-50">
                   <td className="px-6 py-4 font-medium text-ink">{app.employee}</td>
                   <td className="px-6 py-4 text-slate-600">{app.destination}</td>

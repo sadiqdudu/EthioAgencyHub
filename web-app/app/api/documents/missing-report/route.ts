@@ -113,7 +113,7 @@ export async function GET() {
       }
     }
 
-    const cases = [...latestByCaseId.values()].sort((a, b) => b.missingSince.localeCompare(a.missingSince));
+    const cases = Array.from(latestByCaseId.values()).sort((a, b) => b.missingSince.localeCompare(a.missingSince));
     return ok(cases, { source: 'database', total: cases.length });
   } catch (error) {
     const authRes = handleAuthError(error);

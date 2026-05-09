@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, Clock, Download, FileText, Printer, RefreshCcw, Send } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, Download, FileText, Printer, RefreshCcw, Send, Search } from 'lucide-react';
 
 type Priority = 'critical' | 'high' | 'medium';
 type ReportStatus = 'draft' | 'submitted_to_mols' | 'under_review' | 'resolved';
@@ -32,10 +32,19 @@ export function DocumentsMissingReport() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredCases = useMemo(() => {
+    return cases.filter(item => 
+      item.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      item.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.passportNo.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [cases, searchQuery]);
 
   const selectedCase = useMemo(
-    () => cases.find((item) => item.id === selectedCaseId) ?? cases[0],
-    [cases, selectedCaseId]
+    () => cases.find((item) => item.id === selectedCaseId) ?? filteredCases[0],
+    [cases, selectedCaseId, filteredCases]
   );
 
   const loadCases = async () => {
@@ -333,11 +342,24 @@ export function DocumentsMissingReport() {
 
       {/* Cases Table */}
       <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-ink">Missing Abroad Cases</h3>
-          <span className="text-xs font-semibold text-slate-600">
-            Last updated: {lastUpdatedAt ? lastUpdatedAt.toLocaleTimeString() : 'N/A'}
-          </span>
+        <div className="border-b border-slate-200 px-6 py-4 flex flex-wrap gap-4 items-center justify-between bg-slate-50">
+          <div>
+            <h3 className="text-lg font-bold text-ink">Missing Abroad Cases</h3>
+            <span className="text-xs font-semibold text-slate-600">
+              Last updated: {lastUpdatedAt ? lastUpdatedAt.toLocaleTimeString() : 'N/A'}
+            </span>
+          </div>
+          
+          <div className="relative max-w-sm w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by Employee Name, ID, or Passport..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -359,11 +381,13 @@ export function DocumentsMissingReport() {
                 <tr>
                   <td className="px-6 py-6 text-slate-500" colSpan={9}>Loading cases...</td>
                 </tr>
-              ) : cases.length === 0 ? (
+              ) : filteredCases.length === 0 ? (
                 <tr>
-                  <td className="px-6 py-6 text-slate-500" colSpan={9}>No missing-abroad cases found.</td>
+                  <td className="px-6 py-6 text-slate-500 text-center" colSpan={9}>
+                    No missing-abroad cases found matching "{searchQuery}".
+                  </td>
                 </tr>
-              ) : cases.map((item) => (
+              ) : filteredCases.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-semibold text-red-600">{item.id}</td>
                   <td className="px-6 py-4 text-slate-700">

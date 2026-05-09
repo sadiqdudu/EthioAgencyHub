@@ -125,7 +125,7 @@ export function CvSearch({ agentId, viewOnly = false, onSelect }: CvSearchProps)
             <button onClick={clearFilters} className="text-sm font-semibold text-slate-600 hover:text-slate-800 px-4 py-2 border border-slate-200 rounded-xl">
               Reset Filters
             </button>
-            <button onClick={search} className="text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 px-5 py-2 rounded-xl shadow-md">
+            <button onClick={() => search()} className="text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 px-5 py-2 rounded-xl shadow-md">
               Apply Filters <span className="opacity-80 font-normal ml-1">({results.length} results)</span>
             </button>
           </div>
@@ -199,12 +199,12 @@ export function CvSearch({ agentId, viewOnly = false, onSelect }: CvSearchProps)
                   <span className="text-slate-700 font-medium leading-tight">Arabic<br/><span className="text-sm font-normal text-slate-500">(Intermediate+)</span></span>
                 </label>
                 <label className="flex items-start gap-3 cursor-pointer">
-                  <input type="checkbox" className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-                  <span className="text-slate-700 leading-tight">English<br/><span className="text-sm font-normal text-slate-500">(Intermediate+)</span></span>
+                  <input type="checkbox" defaultChecked className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+                  <span className="text-slate-700 font-medium leading-tight">Amharic<br/><span className="text-sm font-normal text-slate-500">(Native)</span></span>
                 </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-                  <span className="text-slate-700">Other Languages</span>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" className="mt-0.5 w-5 h-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+                  <span className="text-slate-700 leading-tight">Oromo<br/><span className="text-sm font-normal text-slate-500">(Basic+)</span></span>
                 </label>
                 <button className="flex items-center gap-1.5 text-sm font-semibold text-brand-600 mt-2">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-brand-700">+</span>

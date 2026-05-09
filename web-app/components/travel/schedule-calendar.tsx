@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plane, Calendar, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plane, Calendar, Users, Search, Globe, User } from 'lucide-react';
 
 interface Travel {
   id: string;
+  country?: string;
   destination: string;
   departureAt: string;
   status: string;
   employeeName: string;
   ticket?: string;
+  agencyWorker?: string;
+  task?: string;
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -19,6 +22,7 @@ export function TravelScheduleCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [travels, setTravels] = useState<Travel[]>([]);
   const [selectedTravel, setSelectedTravel] = useState<Travel | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetch('/api/travel')
@@ -39,7 +43,10 @@ export function TravelScheduleCalendar() {
 
   const getTravelsForDay = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return travels.filter(t => t.departureAt.startsWith(dateStr));
+    return travels.filter(t => t.departureAt.startsWith(dateStr) && (
+      t.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.destination.toLowerCase().includes(searchQuery.toLowerCase())
+    ));
   };
 
   const getStatusColor = (status: string) => {
@@ -57,11 +64,24 @@ export function TravelScheduleCalendar() {
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
           <div>
             <h3 className="text-lg font-bold">Travel Schedule Calendar</h3>
             <p className="mt-1 text-sm text-slate-500">View and manage departure schedules by month.</p>
           </div>
+          <div className="relative max-w-sm w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search employee or destination..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={prevMonth}
@@ -110,9 +130,9 @@ export function TravelScheduleCalendar() {
                     <button
                       key={t.id}
                       onClick={() => setSelectedTravel(t)}
-                      className={`w-full truncate rounded px-1 py-0.5 text-xs font-medium ${getStatusColor(t.status)}`}
+                      className={`w-full truncate rounded px-1 py-0.5 text-xs font-medium text-left ${getStatusColor(t.status)}`}
                     >
-                      {t.employeeName} → {t.destination}
+                      {t.employeeName} → {t.country || t.destination}
                     </button>
                   ))}
                   {dayTravels.length > 2 && (
@@ -148,11 +168,11 @@ export function TravelScheduleCalendar() {
             </div>
             <div className="flex items-center gap-3">
               <div className="rounded-full bg-brand-100 p-2">
-                <Plane className="h-5 w-5 text-brand-600" />
+                <Globe className="h-5 w-5 text-brand-600" />
               </div>
               <div>
-                <p className="text-sm text-slate-500">Destination</p>
-                <p className="font-medium">{selectedTravel.destination}</p>
+                <p className="text-sm text-slate-500">Country & Destination</p>
+                <p className="font-medium">{selectedTravel.country || 'N/A'} ({selectedTravel.destination})</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -165,11 +185,28 @@ export function TravelScheduleCalendar() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className={`rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(selectedTravel.status)}`}>
+              <div className="rounded-full bg-slate-100 p-2">
+                <User className="h-5 w-5 text-slate-600" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Agency Escort</p>
+                <p className="font-bold text-brand-700">{selectedTravel.agencyWorker || 'Unassigned'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className={`rounded-full px-4 py-1.5 text-sm font-bold border ${getStatusColor(selectedTravel.status)}`}>
                 {selectedTravel.status}
               </div>
             </div>
           </div>
+          {selectedTravel.task && (
+            <div className="mt-4 rounded-xl bg-orange-50 border border-orange-100 p-4">
+              <p className="text-sm font-bold text-orange-800 flex items-center gap-2">
+                 Agency Worker Task
+              </p>
+              <p className="mt-1 font-medium text-orange-900">{selectedTravel.task}</p>
+            </div>
+          )}
           {selectedTravel.ticket && (
             <div className="mt-4 rounded-lg bg-slate-50 p-4">
               <p className="text-sm font-medium">Ticket / PNR</p>

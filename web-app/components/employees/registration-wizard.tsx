@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Save, RefreshCw, Clock } from 'lucide-react';
 import { SelectField, TextField } from '@/components/employees/form-fields';
 import { PassportScanner } from '@/components/employees/passport-scanner';
 import {
@@ -48,6 +48,15 @@ type SkillsData = {
 
 type DocumentsData = { docPath: string; tgVideoId: string };
 
+type Draft = {
+  id: string;
+  personal: PersonalData;
+  skills: SkillsData;
+  docs: DocumentsData;
+  step: number;
+  createdAt: string;
+};
+
 const steps = ['Personal', 'Skills', 'Documents', 'Review'] as const;
 
 type RegistrationWizardProps = {
@@ -93,32 +102,57 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftSaved, setDraftSaved] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [showDraftSelector, setShowDraftSelector] = useState(false);
+  const [existingDrafts, setExistingDrafts] = useState<Draft[]>([]);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setStep(Math.max(0, Math.min(initialStep, steps.length - 1)));
     
-    // Load existing draft if available
-    const loadExistingDraft = async () => {
+    const loadExistingDrafts = async () => {
       try {
         const response = await fetch('/api/employees/drafts');
         const data = await response.json();
         
         if (response.ok && data.success && data.data.length > 0) {
-          const latestDraft = data.data[0]; // Load the most recent draft
-          await loadDraft(latestDraft.id);
+          setExistingDrafts(data.data);
         }
       } catch (error) {
-        console.error('Failed to load existing draft:', error);
+        console.error('Failed to load existing drafts:', error);
       }
     };
     
-    loadExistingDraft();
+    loadExistingDrafts();
   }, [initialStep]);
 
-  const next = () => setStep((s) => Math.min(s + 1, steps.length - 1));
-  const prev = () => setStep((s) => Math.max(s - 1, 0));
+  const next = () => {
+    autoSave();
+    setStep((s) => Math.min(s + 1, steps.length - 1));
+  };
+  const prev = () => {
+    autoSave();
+    setStep((s) => Math.max(s - 1, 0));
+  };
 
-  const saveDraft = async () => {
+  const autoSave = useCallback(async (showFeedback = false) => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      try {
+        setIsAutoSaving(true);
+        await saveDraft(false);
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      } finally {
+        setIsAutoSaving(false);
+      }
+    }, 1000);
+  }, [personal, skills, docs, step, draftId]);
+
+  const saveDraft = async (showFeedback = true) => {
     try {
       const draftData = {
         personal,
@@ -128,8 +162,17 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         createdAt: new Date().toISOString()
       };
 
-      const response = await fetch('/api/employees/draft', {
-        method: 'POST',
+      let response;
+      let url = '/api/employees/drafts';
+      let method = 'POST';
+
+      if (draftId && !draftId.startsWith('mock-')) {
+        url = `/api/employees/drafts/${draftId}`;
+        method = 'PUT';
+      }
+
+      response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(draftData)
       });
@@ -137,7 +180,10 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
       const data = await response.json();
       if (response.ok && data.success) {
         setDraftId(data.data.id);
-        setDraftSaved(true);
+        if (showFeedback) {
+          setDraftSaved(true);
+          setTimeout(() => setDraftSaved(false), 3000);
+        }
         return data.data.id;
       } else {
         throw new Error(data.error?.message || 'Failed to save draft');
@@ -148,18 +194,19 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
     }
   };
 
-  const loadDraft = async (draftId: string) => {
+  const loadDraft = async (draftIdToLoad: string) => {
     try {
-      const response = await fetch(`/api/employees/draft/${draftId}`);
+      const response = await fetch(`/api/employees/drafts/${draftIdToLoad}`);
       const data = await response.json();
       
       if (response.ok && data.success) {
         const draft = data.data;
         setPersonal(draft.personal || personal);
         setSkills(draft.skills || skills);
-        setDocs(draft.docs || docs);
+        setDocs(draft.documents || docs);
         setStep(draft.step || 0);
-        setDraftId(draftId);
+        setDraftId(draftIdToLoad);
+        setShowDraftSelector(false);
         return true;
       } else {
         throw new Error(data.error?.message || 'Failed to load draft');
@@ -168,6 +215,60 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
       console.error('Failed to load draft:', error);
       throw error;
     }
+  };
+
+  const deleteDraft = async (draftIdToDelete: string) => {
+    try {
+      const response = await fetch(`/api/employees/drafts/${draftIdToDelete}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        setExistingDrafts(existingDrafts.filter(d => d.id !== draftIdToDelete));
+        if (draftId === draftIdToDelete) {
+          setDraftId(null);
+          setStep(0);
+          setPersonal({
+            firstName: '',
+            lastName: '',
+            email: '',
+            dateOfBirth: '',
+            gender: '',
+            maritalStatus: '',
+            nationality: '',
+            region: '',
+            zone: '',
+            contactPhone: '',
+            alternatePhone: '',
+            emergencyContact: '',
+            emergencyPhone: '',
+            nationalId: '',
+            laborId: '',
+            passportNumber: '',
+            passportExpiryDate: '',
+            fatherName: '',
+            motherName: ''
+          });
+          setSkills({
+            education: '',
+            role: '',
+            experience: '',
+            destination: '',
+            languages: [],
+            additionalSkills: ''
+          });
+          setDocs({ docPath: '', tgVideoId: '' });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete draft:', error);
+    }
+  };
+
+  const startNewRegistration = () => {
+    setDraftId(null);
+    setStep(0);
+    setShowDraftSelector(false);
   };
 
   // Get zones for selected region
@@ -191,7 +292,7 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
 
   const saveAndContinue = async () => {
     try {
-      await saveDraft();
+      await saveDraft(true);
       next();
     } catch (error) {
       setResult({ ok: false, message: error instanceof Error ? error.message : 'Failed to save draft' });
@@ -297,7 +398,6 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
               type="email"
               value={personal.email}
               onChange={(v) => setPersonal({ ...personal, email: v })}
-              required
             />
             <TextField
               label="Date of Birth"
@@ -629,36 +729,61 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
       )}
 
       <div className="mt-6 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={prev}
-          disabled={step === 0}
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 disabled:opacity-40"
-        >
-          <ChevronLeft className="h-4 w-4" /> Back
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={prev}
+            disabled={step === 0}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 disabled:opacity-40"
+          >
+            <ChevronLeft className="h-4 w-4" /> Back
+          </button>
+          
+          {/* Draft selector */}
+          <button
+            type="button"
+            onClick={() => setShowDraftSelector(true)}
+            className="inline-flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100"
+          >
+            <Clock className="h-4 w-4" />
+            {draftId ? 'Continue Draft' : 'Saved Drafts'}
+            {existingDrafts.length > 0 && (
+              <span className="ml-1 rounded-full bg-amber-200 px-2 py-0.5 text-xs">{existingDrafts.length}</span>
+            )}
+          </button>
+        </div>
 
         {step < steps.length - 1 ? (
           <div className="flex gap-3">
-            <button
+<button
               type="button"
-              onClick={saveAndContinue}
+              onClick={() => saveDraft(true)}
               disabled={
-                (step === 0 && (!personal.firstName.trim() || !personal.lastName.trim() || !personal.email.trim() || !personal.contactPhone.trim())) ||
+                (step === 0 && (!personal.firstName.trim() || !personal.lastName.trim() || !personal.contactPhone.trim())) ||
                 (step === 1 && !skills.role)
               }
               className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-              </svg>
+              <Save className="h-4 w-4" />
               Save Draft
             </button>
             <button
               type="button"
               onClick={next}
               disabled={
-                (step === 0 && (!personal.firstName.trim() || !personal.lastName.trim() || !personal.email.trim() || !personal.contactPhone.trim())) ||
+                (step === 0 && (!personal.firstName.trim() || !personal.lastName.trim() || !personal.contactPhone.trim())) ||
+                (step === 1 && !skills.role)
+              }
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            >
+              <Save className="h-4 w-4" />
+              Save Draft
+            </button>
+            <button
+              type="button"
+              onClick={next}
+              disabled={
+                (step === 0 && (!personal.firstName.trim() || !personal.lastName.trim() || !personal.contactPhone.trim())) ||
                 (step === 1 && !skills.role)
               }
               className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
@@ -678,6 +803,19 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         )}
       </div>
 
+      {/* Autosave indicator */}
+      <div className="mt-3 flex items-center justify-end gap-2 text-xs text-slate-500">
+        {isAutoSaving ? (
+          <span className="flex items-center gap-1">
+            <RefreshCw className="h-3 w-3 animate-spin" /> Auto-saving...
+          </span>
+        ) : draftId ? (
+          <span className="flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Draft auto-saved
+          </span>
+        ) : null}
+      </div>
+
       {/* Draft Status */}
       {draftSaved && (
         <div className="mt-4 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
@@ -691,6 +829,70 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
           {result.message}
         </p>
       ) : null}
+
+      {/* Draft Selector Modal */}
+      {showDraftSelector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="max-h-[80vh] w-full max-w-lg overflow-auto rounded-3xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-ink">Saved Drafts</h3>
+              <button
+                type="button"
+                onClick={() => setShowDraftSelector(false)}
+                className="rounded-full p-2 hover:bg-slate-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            {existingDrafts.length > 0 ? (
+              <div className="space-y-3">
+                {existingDrafts.map((draft) => (
+                  <div
+                    key={draft.id}
+                    className="flex items-center justify-between rounded-2xl border border-slate-200 p-4 hover:border-brand-300"
+                  >
+                    <div className="flex-1">
+                      <p className="font-semibold text-ink">
+                        {draft.personal?.firstName || 'Unnamed'} {draft.personal?.lastName || ''}
+                      </p>
+                      <p className="text-sm text-slate-500">
+                        Step {draft.step + 1}: {steps[draft.step]} • Created: {new Date(draft.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => loadDraft(draft.id)}
+                        className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+                      >
+                        Continue
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteDraft(draft.id)}
+                        className="rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-slate-500">No saved drafts found.</p>
+            )}
+
+            <button
+              type="button"
+              onClick={startNewRegistration}
+              className="mt-4 w-full rounded-2xl border border-slate-300 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              Start New Registration
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
