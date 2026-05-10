@@ -88,30 +88,139 @@ export function TravelManagementModule() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [bookingForm, setBookingForm] = useState({
+    employeeId: '',
+    destination: '',
+    airline: '',
+    flightNumber: '',
+    class: 'economy',
+    departureDate: '',
+    departureTime: '',
+    arrivalTime: '',
+    origin: 'Addis Ababa',
+    terminal: 'T2',
+    ticketCost: 0,
+    currency: 'SAR',
+    bookingReference: ''
+  });
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const mockBookings: TicketBooking[] = [
-      { id: 'B001', employeeId: 'EMP-001', employeeName: 'Mekdes Tadesse', phone: '+251911234567', destination: 'Riyadh, Saudi Arabia', airline: 'Saudi Arabian Airlines', flightNumber: 'SV414', class: 'economy', departureDate: '2024-03-20', departureTime: '08:30', arrivalTime: '11:45', origin: 'Addis Ababa', terminal: 'T2', ticketCost: 12500, currency: 'SAR', paymentStatus: 'paid', bookedBy: 'Admin User', bookedDate: '2024-03-01', bookingReference: 'SV-234567890', status: 'issued' },
-      { id: 'B002', employeeId: 'EMP-002', employeeName: 'Ibrahim Mohammed', phone: '+251912345678', destination: 'Dubai, UAE', airline: 'Emirates', flightNumber: 'EK-724', class: 'economy', departureDate: '2024-03-20', departureTime: '14:20', arrivalTime: '19:30', origin: 'Addis Ababa', terminal: 'T1', ticketCost: 8500, currency: 'AED', paymentStatus: 'paid', bookedBy: 'Admin User', bookedDate: '2024-03-02', bookingReference: 'EK-890123456', status: 'issued' },
-      { id: 'B003', employeeId: 'EMP-003', employeeName: 'Fatima Ahmed', phone: '+251913456789', destination: 'Doha, Qatar', airline: 'Qatar Airways', flightNumber: 'QR-362', class: 'economy', departureDate: '2024-03-21', departureTime: '06:15', arrivalTime: '09:45', origin: 'Addis Ababa', terminal: 'T2', ticketCost: 9500, currency: 'QAR', paymentStatus: 'pending', bookedBy: 'Admin User', bookedDate: '2024-03-05', bookingReference: 'QR-456789123', status: 'booked' },
-      { id: 'B004', employeeId: 'EMP-004', employeeName: 'Ahmed Osman', phone: '+251914567890', destination: 'Kuwait City, Kuwait', airline: 'Kuwait Airways', flightNumber: 'WY-702', class: 'economy', departureDate: '2024-03-22', departureTime: '10:45', arrivalTime: '14:30', origin: 'Addis Ababa', terminal: 'T2', ticketCost: 11000, currency: 'KWD', paymentStatus: 'pending', bookedBy: 'Admin User', bookedDate: '2024-03-06', bookingReference: 'WY-567890123', status: 'booked' },
-      { id: 'B005', employeeId: 'EMP-005', employeeName: 'Sara Kemal', phone: '+251915678901', destination: 'Riyadh, Saudi Arabia', airline: 'Saudi Arabian Airlines', flightNumber: 'SV420', class: 'economy', departureDate: '2024-03-19', departureTime: '22:00', arrivalTime: '01:15', origin: 'Addis Ababa', terminal: 'T2', ticketCost: 12500, currency: 'SAR', paymentStatus: 'paid', bookedBy: 'Admin User', bookedDate: '2024-02-28', bookingReference: 'SV-678901234', status: 'used' },
-    ];
-    setBookings(mockBookings);
+  const handleCreateBooking = async () => {
+    try {
+      const res = await fetch('/api/travel/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookingForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsBookingModalOpen(false);
+        loadData();
+      }
+    } catch (error) {
+      console.error('Failed to create booking:', error);
+    }
+  };
 
-    const mockData: TravelEmployee[] = [
-      { id: 'T001', employeeId: 'EMP-001', name: 'Mekdes Tadesse', phone: '+251911234567', destination: 'Riyadh, Saudi Arabia', flightNumber: 'SV414', departureDate: '2024-03-20', departureTime: '08:30', arrivalTime: '11:45', terminal: 'T2', ticketNumber: 'SV-234567', status: 'orientation_done', documents: { passport: true, visa: true, yellowCard: true, ticket: true, orientationComplete: true }, localAgentId: 'LA-001', localAgentName: 'Tadesse Bekele', assignedStaffId: 'ST-001', assignedStaffName: 'Abebe Kebede', transitStatus: { t72hours: 'bus_started', t48hours: 'pending', t24hours: 'pending' }, notes: 'First time traveling' },
-      { id: 'T002', employeeId: 'EMP-002', name: 'Ibrahim Mohammed', phone: '+251912345678', destination: 'Dubai, UAE', flightNumber: 'EK-724', departureDate: '2024-03-20', departureTime: '14:20', arrivalTime: '19:30', terminal: 'T1', ticketNumber: 'EK-890123', status: 'hostel_checkin', documents: { passport: true, visa: true, yellowCard: true, ticket: true, orientationComplete: false }, localAgentId: 'LA-002', localAgentName: 'Ahmed Hassan', assignedStaffId: 'ST-002', assignedStaffName: 'Sara Mulatu', transitStatus: { t72hours: 'confirmed', t48hours: 'arrived_hostel', t24hours: 'pending' } },
-      { id: 'T003', employeeId: 'EMP-003', name: 'Fatima Ahmed', phone: '+251913456789', destination: 'Doha, Qatar', flightNumber: 'QR-362', departureDate: '2024-03-21', departureTime: '06:15', arrivalTime: '09:45', terminal: 'T2', ticketNumber: 'QR-456789', status: 'transit_to_addis', documents: { passport: true, visa: true, yellowCard: false, ticket: true, orientationComplete: false }, localAgentId: 'LA-001', localAgentName: 'Tadesse Bekele', assignedStaffId: 'ST-001', assignedStaffName: 'Abebe Kebede', transitStatus: { t72hours: 'bus_started', t48hours: 'pending', t24hours: 'pending' }, notes: 'From Wolkite village' },
-      { id: 'T004', employeeId: 'EMP-004', name: 'Ahmed Osman', phone: '+251914567890', destination: 'Kuwait City, Kuwait', flightNumber: 'WY-702', departureDate: '2024-03-22', departureTime: '10:45', arrivalTime: '14:30', terminal: 'T2', ticketNumber: 'WY-567890', status: 'pending', documents: { passport: true, visa: true, yellowCard: true, ticket: false, orientationComplete: false }, localAgentId: 'LA-003', localAgentName: 'Mohammed Ali', transitStatus: { t72hours: 'pending', t48hours: 'pending', t24hours: 'pending' } },
-      { id: 'T005', employeeId: 'EMP-005', name: 'Sara kemal', phone: '+251915678901', destination: 'Riyadh, Saudi Arabia', flightNumber: 'SV420', departureDate: '2024-03-19', departureTime: '22:00', arrivalTime: '01:15', terminal: 'T2', ticketNumber: 'SV-678901', status: 'arrived', documents: { passport: true, visa: true, yellowCard: true, ticket: true, orientationComplete: true }, localAgentId: 'LA-002', localAgentName: 'Ahmed Hassan', inCountryStaff: 'Mahmoud Saudi', transitStatus: { t72hours: 'confirmed', t48hours: 'confirmed', t24hours: 'ready' } },
-    ];
-    setEmployees(mockData);
-    setLoading(false);
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [travelRes, bookingRes, employeesRes] = await Promise.all([
+        fetch('/api/travel'),
+        fetch('/api/travel/booking'),
+        fetch('/api/employees')
+      ]);
+
+      const [travelData, bookingData, employeesData] = await Promise.all([
+        travelRes.json(),
+        bookingRes.json(),
+        employeesRes.json()
+      ]);
+
+      if (travelData.success && travelData.data) {
+        const mappedEmployees: TravelEmployee[] = travelData.data.map((t: any) => ({
+          id: t.id,
+          employeeId: t.employeeId || '',
+          name: t.employee?.name || 'Unknown',
+          phone: t.employee?.phone || '',
+          destination: t.destination || '',
+          flightNumber: t.flightNumber || '',
+          departureDate: t.departureAt ? new Date(t.departureAt).toISOString().split('T')[0] : '',
+          departureTime: t.departureTime || '',
+          arrivalTime: t.arrivalTime || '',
+          terminal: t.terminal || '',
+          ticketNumber: t.ticket || '',
+          status: t.status === 'DEPARTED' ? 'departed' : t.status === 'ARRIVED' ? 'arrived' : t.status === 'READY' ? 'ready' : 'pending',
+          documents: {
+            passport: true,
+            visa: true,
+            yellowCard: true,
+            ticket: !!t.ticket,
+            orientationComplete: false
+          },
+          localAgentId: t.localAgentId,
+          localAgentName: t.localAgentName,
+          assignedStaffId: t.assignedStaffId,
+          assignedStaffName: t.assignedStaffName,
+          inCountryStaff: t.inCountryStaff,
+          transitStatus: t.transitStatus || { t72hours: 'pending', t48hours: 'pending', t24hours: 'pending' }
+        }));
+        setEmployees(mappedEmployees);
+      }
+
+      if (bookingData.success && bookingData.data) {
+        const mappedBookings: TicketBooking[] = bookingData.data.map((b: any) => ({
+          id: b.id,
+          employeeId: b.employeeId,
+          employeeName: b.employee?.name || '',
+          phone: b.employee?.phone || '',
+          destination: b.destination,
+          airline: b.airline || '',
+          flightNumber: b.flightNumber || '',
+          class: b.class || 'economy',
+          departureDate: b.departureAt ? new Date(b.departureAt).toISOString().split('T')[0] : '',
+          departureTime: b.departureTime || '',
+          arrivalTime: b.arrivalTime || '',
+          origin: b.origin || 'Addis Ababa',
+          terminal: b.terminal || '',
+          ticketCost: b.ticketCost || 0,
+          currency: b.currency || 'SAR',
+          paymentStatus: b.paymentStatus || 'pending',
+          bookedBy: 'Agency Admin',
+          bookedDate: new Date().toISOString().split('T')[0],
+          bookingReference: b.bookingReference || '',
+          status: b.status === 'TICKETED' ? 'issued' : b.status === 'DEPARTED' ? 'used' : 'booked'
+        }));
+        setBookings(mappedBookings);
+      }
+
+      if (employeesData.success && employeesData.data && employeesData.data.length > 0 && employees.length === 0) {
+        const empMap: TravelEmployee[] = employeesData.data.slice(0, 5).map((e: any, idx: number) => ({
+          id: `EMP-${idx}`,
+          employeeId: e.id,
+          name: e.firstName + ' ' + (e.lastName || ''),
+          phone: e.phone || '',
+          destination: e.country || 'Saudi Arabia',
+          flightNumber: '',
+          departureDate: '',
+          departureTime: '',
+          arrivalTime: '',
+          terminal: 'T2',
+          ticketNumber: '',
+          status: 'pending' as const,
+          documents: { passport: !!e.passport, visa: !!e.visa, yellowCard: false, ticket: false, orientationComplete: false },
+          transitStatus: { t72hours: 'pending' as const, t48hours: 'pending' as const, t24hours: 'pending' as const }
+        }));
+        if (employees.length === 0) setEmployees(empMap);
+      }
+    } catch (error) {
+      console.error('Failed to load travel data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredEmployees = employees.filter(e => 
@@ -275,7 +384,7 @@ export function TravelManagementModule() {
 
       {/* Tab Content */}
       {activeTab === 'overview' && <OverviewTab employees={filteredEmployees} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}
-      {activeTab === 'booking' && <BookingTab bookings={bookings} setBookings={setBookings} />}
+      {activeTab === 'booking' && <BookingTab bookings={bookings} setBookings={setBookings} isBookingModalOpen={isBookingModalOpen} setIsBookingModalOpen={setIsBookingModalOpen} bookingForm={bookingForm} setBookingForm={setBookingForm} handleCreateBooking={handleCreateBooking} employees={employees} />}
       {activeTab === 'schedule' && <ScheduleTab employees={employees} />}
       {activeTab === 'tickets' && <TicketsTab employees={filteredEmployees} />}
       {activeTab === 'preparation' && <PreparationTab employees={filteredEmployees} />}
@@ -286,7 +395,7 @@ export function TravelManagementModule() {
 }
 
 // Booking Tab - Agency Ticket Booking & Payment
-function BookingTab({ bookings, setBookings }: { bookings: TicketBooking[], setBookings: (b: TicketBooking[]) => void }) {
+function BookingTab({ bookings, setBookings, isBookingModalOpen, setIsBookingModalOpen, bookingForm, setBookingForm, handleCreateBooking, employees }: { bookings: TicketBooking[], setBookings: (b: TicketBooking[]) => void, isBookingModalOpen: boolean, setIsBookingModalOpen: (v: boolean) => void, bookingForm: any, setBookingForm: (f: any) => void, handleCreateBooking: () => void, employees: TravelEmployee[] }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -334,7 +443,7 @@ function BookingTab({ bookings, setBookings }: { bookings: TicketBooking[], setB
             <p className="text-sm text-blue-700">The agency is responsible for booking and paying for all employee flights. Ticket costs are covered by the agency.</p>
           </div>
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => setIsBookingModalOpen(true)}
             className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
@@ -488,12 +597,12 @@ function BookingTab({ bookings, setBookings }: { bookings: TicketBooking[], setB
       </div>
 
       {/* Booking Modal */}
-      {isModalOpen && (
+      {isBookingModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl">
             <div className="sticky top-0 border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between">
               <h3 className="text-xl font-bold text-ink">Book New Flight Ticket</h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 rounded-lg hover:bg-slate-100">
+              <button onClick={() => setIsBookingModalOpen(false)} className="p-2 rounded-lg hover:bg-slate-100">
                 <X className="h-5 w-5 text-slate-500" />
               </button>
             </div>
@@ -507,12 +616,25 @@ function BookingTab({ bookings, setBookings }: { bookings: TicketBooking[], setB
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Employee Name *</label>
-                  <input type="text" placeholder="Search employee..." className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Employee *</label>
+                  <select 
+                    value={bookingForm.employeeId}
+                    onChange={(e) => setBookingForm({...bookingForm, employeeId: e.target.value})}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                  >
+                    <option value="">Select Employee</option>
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.employeeId || emp.id}>{emp.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Destination *</label>
-                  <select className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm">
+                  <select 
+                    value={bookingForm.destination}
+                    onChange={(e) => setBookingForm({...bookingForm, destination: e.target.value})}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                  >
                     <option value="">Select Destination</option>
                     <option value="Saudi Arabia">Saudi Arabia</option>
                     <option value="UAE">UAE</option>
@@ -523,7 +645,11 @@ function BookingTab({ bookings, setBookings }: { bookings: TicketBooking[], setB
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Airline *</label>
-                  <select className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm">
+                  <select 
+                    value={bookingForm.airline}
+                    onChange={(e) => setBookingForm({...bookingForm, airline: e.target.value})}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                  >
                     <option value="">Select Airline</option>
                     <option value="Saudi Arabian Airlines">Saudi Arabian Airlines (SV)</option>
                     <option value="Emirates">Emirates (EK)</option>
@@ -534,19 +660,48 @@ function BookingTab({ bookings, setBookings }: { bookings: TicketBooking[], setB
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Flight Number *</label>
-                  <input type="text" placeholder="e.g., SV414" className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" />
+                  <input 
+                    type="text" 
+                    value={bookingForm.flightNumber}
+                    onChange={(e) => setBookingForm({...bookingForm, flightNumber: e.target.value})}
+                    placeholder="e.g., SV414" 
+                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" 
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Departure Date *</label>
-                  <input type="date" className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" />
+                  <input 
+                    type="date" 
+                    value={bookingForm.departureDate}
+                    onChange={(e) => setBookingForm({...bookingForm, departureDate: e.target.value})}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" 
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Departure Time *</label>
-                  <input type="time" className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" />
+                  <input 
+                    type="time" 
+                    value={bookingForm.departureTime}
+                    onChange={(e) => setBookingForm({...bookingForm, departureTime: e.target.value})}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Arrival Time *</label>
+                  <input 
+                    type="time" 
+                    value={bookingForm.arrivalTime}
+                    onChange={(e) => setBookingForm({...bookingForm, arrivalTime: e.target.value})}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" 
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Class *</label>
-                  <select className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm">
+                  <select 
+                    value={bookingForm.class}
+                    onChange={(e) => setBookingForm({...bookingForm, class: e.target.value as any})}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                  >
                     <option value="economy">Economy</option>
                     <option value="business">Business</option>
                     <option value="first">First Class</option>
@@ -554,7 +709,11 @@ function BookingTab({ bookings, setBookings }: { bookings: TicketBooking[], setB
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Terminal</label>
-                  <select className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm">
+                  <select 
+                    value={bookingForm.terminal}
+                    onChange={(e) => setBookingForm({...bookingForm, terminal: e.target.value})}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                  >
                     <option value="T1">Terminal 1</option>
                     <option value="T2">Terminal 2</option>
                   </select>
@@ -562,8 +721,18 @@ function BookingTab({ bookings, setBookings }: { bookings: TicketBooking[], setB
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Estimated Cost *</label>
                   <div className="flex gap-2">
-                    <input type="number" placeholder="0.00" className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm" />
-                    <select className="w-24 rounded-xl border border-slate-300 px-2 py-2.5 text-sm">
+                    <input 
+                      type="number" 
+                      value={bookingForm.ticketCost}
+                      onChange={(e) => setBookingForm({...bookingForm, ticketCost: Number(e.target.value)})}
+                      placeholder="0.00" 
+                      className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm" 
+                    />
+                    <select 
+                      value={bookingForm.currency}
+                      onChange={(e) => setBookingForm({...bookingForm, currency: e.target.value})}
+                      className="w-24 rounded-xl border border-slate-300 px-2 py-2.5 text-sm"
+                    >
                       <option value="SAR">SAR</option>
                       <option value="AED">AED</option>
                       <option value="QAR">QAR</option>
@@ -575,8 +744,12 @@ function BookingTab({ bookings, setBookings }: { bookings: TicketBooking[], setB
               </div>
             </div>
             <div className="sticky bottom-0 border-t border-slate-200 bg-white px-6 py-4 flex justify-end gap-3">
-              <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-sm font-medium text-slate-600">Cancel</button>
-              <button className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white">
+              <button onClick={() => setIsBookingModalOpen(false)} className="px-5 py-2.5 text-sm font-medium text-slate-600">Cancel</button>
+              <button 
+                onClick={handleCreateBooking}
+                disabled={!bookingForm.employeeId || !bookingForm.destination || !bookingForm.airline || !bookingForm.flightNumber || !bookingForm.departureDate}
+                className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              >
                 <Save className="h-4 w-4" />
                 Book Ticket
               </button>

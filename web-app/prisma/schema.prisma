@@ -175,16 +175,33 @@ model Document {
 }
 
 model Travel {
-  id          String       @id @default(cuid())
-  employee    Employee     @relation(fields: [employeeId], references: [id])
-  employeeId  String
-  destination String
-  departureAt DateTime
-  status      TravelStatus @default(SCHEDULED)
-  ticket      String?
-  deletedAt   DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                String       @id @default(cuid())
+  employee          Employee     @relation(fields: [employeeId], references: [id])
+  employeeId        String
+  destination       String
+  departureAt       DateTime
+  status            TravelStatus @default(SCHEDULED)
+  ticket            String?
+  airline           String?
+  flightNumber      String?
+  departureTime    String?
+  arrivalTime       String?
+  origin            String?
+  terminal          String?
+  class             String?
+  ticketCost        Float?
+  currency          String?
+  paymentStatus    String?      @default("pending")
+  bookingReference  String?
+  localAgentId      String?
+  localAgentName    String?
+  assignedStaffId   String?
+  assignedStaffName String?
+  inCountryStaff    String?
+  transitStatus     Json?
+  deletedAt         DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   @@index([employeeId])
   @@index([departureAt, status])
