@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { CheckCircle2, ChevronLeft, ChevronRight, Save, RefreshCw, Clock, Video, Upload, X, Loader2, MessageCircle, Search, Plus, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Save, RefreshCw, Clock, Video, Upload, X, Loader2, MessageCircle, Search, Plus, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { SelectField, TextField } from '@/components/employees/form-fields';
 import { PassportScanner } from '@/components/employees/passport-scanner';
 import {
@@ -83,6 +83,17 @@ type RegistrationWizardProps = {
 
 export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps) {
   const [step, setStep] = useState(Math.max(0, Math.min(initialStep, steps.length - 1)));
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    personal: true,
+    skills: true,
+    assessment: true,
+    documents: true,
+    review: true,
+  });
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section as keyof typeof prev] }));
+  };
   const [personal, setPersonal] = useState<PersonalData>({
     firstName: '',
     lastName: '',
@@ -563,21 +574,57 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         </div>
       )}
 
-      <ol className="mb-6 flex flex-wrap gap-2">
-        {steps.map((name, index) => (
-          <li
-            key={name}
-            className={`flex items-center gap-2 rounded-full px-4 py-1 text-sm font-semibold ${
-              index === step ? 'bg-brand-600 text-white' : index < step ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-500'
-            }`}
-          >
-            {index < step ? <CheckCircle2 className="h-4 w-4" /> : <span>{index + 1}</span>}
-            {name}
-          </li>
-        ))}
-      </ol>
+      {/* Accordion Section Headers */}
+      <div className="mb-6 space-y-2">
+        {/* Personal Section */}
+        <div onClick={() => toggleSection('personal')} className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${expandedSections.personal ? 'bg-brand-50 border-2 border-brand-200' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}>
+          <div className="flex items-center gap-3">
+            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${expandedSections.personal ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-600'}`}>1</span>
+            <span className={`font-semibold ${expandedSections.personal ? 'text-brand-800' : 'text-slate-600'}`}>Personal Information</span>
+          </div>
+          {expandedSections.personal ? <ChevronUp className="h-5 w-5 text-brand-600" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
+        </div>
 
-      {step === 0 && (
+        {/* Skills Section */}
+        <div onClick={() => toggleSection('skills')} className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${expandedSections.skills ? 'bg-brand-50 border-2 border-brand-200' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}>
+          <div className="flex items-center gap-3">
+            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${expandedSections.skills ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-600'}`}>2</span>
+            <span className={`font-semibold ${expandedSections.skills ? 'text-brand-800' : 'text-slate-600'}`}>Skills & Experience</span>
+          </div>
+          {expandedSections.skills ? <ChevronUp className="h-5 w-5 text-brand-600" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
+        </div>
+
+        {/* Assessment Section */}
+        <div onClick={() => toggleSection('assessment')} className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${expandedSections.assessment ? 'bg-brand-50 border-2 border-brand-200' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}>
+          <div className="flex items-center gap-3">
+            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${expandedSections.assessment ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-600'}`}>3</span>
+            <span className={`font-semibold ${expandedSections.assessment ? 'text-brand-800' : 'text-slate-600'}`}>Psychology Assessment</span>
+          </div>
+          {expandedSections.assessment ? <ChevronUp className="h-5 w-5 text-brand-600" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
+        </div>
+
+        {/* Documents Section */}
+        <div onClick={() => toggleSection('documents')} className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${expandedSections.documents ? 'bg-brand-50 border-2 border-brand-200' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}>
+          <div className="flex items-center gap-3">
+            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${expandedSections.documents ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-600'}`}>4</span>
+            <span className={`font-semibold ${expandedSections.documents ? 'text-brand-800' : 'text-slate-600'}`}>Documents & Media</span>
+          </div>
+          {expandedSections.documents ? <ChevronUp className="h-5 w-5 text-brand-600" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
+        </div>
+
+        {/* Review Section */}
+        <div onClick={() => toggleSection('review')} className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${expandedSections.review ? 'bg-brand-50 border-2 border-brand-200' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}>
+          <div className="flex items-center gap-3">
+            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${expandedSections.review ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-600'}`}>5</span>
+            <span className={`font-semibold ${expandedSections.review ? 'text-brand-800' : 'text-slate-600'}`}>Review & Submit</span>
+          </div>
+          {expandedSections.review ? <ChevronUp className="h-5 w-5 text-brand-600" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
+        </div>
+      </div>
+
+      {/* All sections always visible - controlled by accordion headers */}
+
+      {expandedSections.personal && (
         <div className="space-y-5">
           {/* ── Compact Passport Scanner ── */}
           <PassportScanner onAutoFill={handlePassportAutoFill} />
@@ -782,7 +829,7 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         </div>
       )}
 
-      {step === 2 && (() => {
+      {expandedSections.assessment && (() => {
         const answered = Object.keys(psychology).length;
         const total = PSYCH_QUESTIONS.length;
         const rawScore = Object.values(psychology).reduce((sum, v) => sum + v, 0);
@@ -854,8 +901,8 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         );
       })()}
 
-      {step === 1 && (
-        <div className="space-y-6">
+      {expandedSections.skills && (
+        <div className="space-y-6 mt-4">
           <div className="grid gap-4 md:grid-cols-2">
             <SelectField
               label="Education Level"
@@ -929,7 +976,7 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
       )}
 
 
-      {step === 3 && (
+      {expandedSections.documents && (
         <div className="space-y-5">
           {/* Photo & Documents */}
           <div>
@@ -1084,7 +1131,7 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         </div>
       )}
 
-      {step === 4 && (
+      {expandedSections.review && (
         <div className="space-y-6">
           <div className="rounded-2xl bg-brand-50 p-4">
             <h3 className="mb-3 font-semibold text-ink">👤 Personal Information</h3>
@@ -1181,15 +1228,6 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* Left Side - Navigation */}
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={prev}
-              disabled={step === 0}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-            >
-              <ChevronLeft className="h-4 w-4" /> Back
-            </button>
-            
             {/* Draft selector */}
             <button
               type="button"
@@ -1210,40 +1248,30 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
             <button
               type="button"
               onClick={() => saveDraft(true)}
-              disabled={
-                (step === 0 && (!personal.firstName.trim() || !personal.lastName.trim())) ||
-                submitting
-              }
+              disabled={submitting}
               className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
             >
               <Save className="h-4 w-4" />
               Save Draft
             </button>
 
-            {step < steps.length - 1 ? (
-              <button
-                type="button"
-                onClick={next}
-                disabled={
-                  (step === 0 && (!personal.firstName.trim() || !personal.lastName.trim() || !personal.contactPhone.trim())) ||
-                  (step === 1 && !skills.role)
-                }
-                className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-              >
-                {step === 2 && Object.keys(psychology).length < PSYCH_QUESTIONS.length
-                  ? `Answer All Questions (${Object.keys(psychology).length}/${PSYCH_QUESTIONS.length})`
-                  : <>Next <ChevronRight className="h-4 w-4" /></>}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onSubmit}
-                disabled={submitting || uploadingFiles}
-                className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            {/* Submit Button - enabled when all required fields are filled */}
+            <button
+              type="button"
+              onClick={onSubmit}
+              disabled={
+                !personal.firstName.trim() || 
+                !personal.lastName.trim() || 
+                !personal.contactPhone.trim() ||
+                !skills.role ||
+                Object.keys(psychology).length < PSYCH_QUESTIONS.length ||
+                submitting ||
+                uploadingFiles
+              }
+              className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
               >
                 {submitting ? 'Submitting...' : uploadingFiles ? 'Uploading...' : 'Submit Registration'}
               </button>
-            )}
           </div>
         </div>
       </div>
