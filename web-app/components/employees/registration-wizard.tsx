@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { CheckCircle2, ChevronLeft, ChevronRight, Save, RefreshCw, Clock } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Save, RefreshCw, Clock, Video, Upload, X, Loader2, MessageCircle, Search, Plus, AlertTriangle } from 'lucide-react';
 import { SelectField, TextField } from '@/components/employees/form-fields';
 import { PassportScanner } from '@/components/employees/passport-scanner';
 import {
@@ -29,12 +29,16 @@ type PersonalData = {
   alternatePhone: string;
   emergencyContact: string;
   emergencyPhone: string;
+  emergencyRelation: string;
   nationalId: string;
   laborId: string;
   passportNumber: string;
   passportExpiryDate: string;
   fatherName: string;
   motherName: string;
+  bankName: string;
+  bankAccountNumber: string;
+  bankBranch: string;
 };
 
 type SkillsData = {
@@ -48,6 +52,20 @@ type SkillsData = {
 
 type DocumentsData = { docPath: string; tgVideoId: string };
 
+// Psychology assessment — 8 questions, each scored 0-3
+const PSYCH_QUESTIONS = [
+  { id: 'q1', text: 'How do you handle being away from family for a long time?', options: ['Very difficult, I struggle', 'It\'s hard but I can manage', 'I can adapt well', 'I am fully prepared'] },
+  { id: 'q2', text: 'Have you worked or lived away from home before?', options: ['Never', 'Briefly (less than 3 months)', 'Yes, 3-12 months', 'Yes, more than 1 year'] },
+  { id: 'q3', text: 'How would you rate your ability to work under strict rules and supervision?', options: ['I prefer full independence', 'Somewhat comfortable', 'Comfortable most of the time', 'Very comfortable'] },
+  { id: 'q4', text: 'What is your primary motivation for working abroad?', options: ['Family pressure only', 'Not sure yet', 'Improve family income', 'Career growth and financial goals'] },
+  { id: 'q5', text: 'How do you cope with cultural differences and new environments?', options: ['Very uncomfortable', 'Takes me a long time', 'I adjust moderately', 'I adapt quickly'] },
+  { id: 'q6', text: 'Do you have a support system (family/friends) who encourage your decision?', options: ['No support at all', 'Some support', 'Good support', 'Strong support and encouragement'] },
+  { id: 'q7', text: 'How confident are you in completing your full contract period (2+ years)?', options: ['Not confident', 'Somewhat unsure', 'Fairly confident', 'Very confident'] },
+  { id: 'q8', text: 'Have you received any pre-departure counseling or training?', options: ['None', 'Basic information only', 'Some training', 'Full pre-departure training'] },
+];
+
+type PsychologyData = { [key: string]: number }; // questionId -> answer index (0-3)
+
 type Draft = {
   id: string;
   personal: PersonalData;
@@ -57,7 +75,7 @@ type Draft = {
   createdAt: string;
 };
 
-const steps = ['Personal', 'Skills', 'Documents', 'Review'] as const;
+const steps = ['Personal', 'Skills', 'Assessment', 'Documents', 'Review'] as const;
 
 type RegistrationWizardProps = {
   initialStep?: number;
@@ -79,12 +97,16 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
     alternatePhone: '',
     emergencyContact: '',
     emergencyPhone: '',
+    emergencyRelation: '',
     nationalId: '',
     laborId: '',
     passportNumber: '',
     passportExpiryDate: '',
     fatherName: '',
-    motherName: ''
+    motherName: '',
+    bankName: '',
+    bankAccountNumber: '',
+    bankBranch: ''
   });
 
   const [skills, setSkills] = useState<SkillsData>({
@@ -96,15 +118,25 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
     additionalSkills: ''
   });
 
+  const [psychology, setPsychology] = useState<PsychologyData>({});
+
   const [docs, setDocs] = useState<DocumentsData>({ docPath: '', tgVideoId: '' });
   const [submitting, setSubmitting] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftSaved, setDraftSaved] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [showDraftSelector, setShowDraftSelector] = useState(false);
   const [existingDrafts, setExistingDrafts] = useState<Draft[]>([]);
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [interviewUploading, setInterviewUploading] = useState(false);
+  const [draftSearchQuery, setDraftSearchQuery] = useState('');
+  const [employeeSearchQuery, setEmployeeSearchQuery] = useState('');
+  const [showEmployeeSearch, setShowEmployeeSearch] = useState(false);
+  const [searchedEmployees, setSearchedEmployees] = useState<any[]>([]);
+  const [searchingEmployees, setSearchingEmployees] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -242,12 +274,16 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
             alternatePhone: '',
             emergencyContact: '',
             emergencyPhone: '',
+            emergencyRelation: '',
             nationalId: '',
             laborId: '',
             passportNumber: '',
             passportExpiryDate: '',
             fatherName: '',
-            motherName: ''
+            motherName: '',
+            bankName: '',
+            bankAccountNumber: '',
+            bankBranch: ''
           });
           setSkills({
             education: '',
@@ -269,6 +305,59 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
     setDraftId(null);
     setStep(0);
     setShowDraftSelector(false);
+  };
+
+  const searchEmployees = async (query: string) => {
+    if (!query.trim()) {
+      setSearchedEmployees([]);
+      return;
+    }
+    setSearchingEmployees(true);
+    try {
+      const response = await fetch(`/api/employees/search?q=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setSearchedEmployees(data.data || []);
+      } else {
+        setSearchedEmployees([]);
+      }
+    } catch (error) {
+      console.error('Search failed:', error);
+      setSearchedEmployees([]);
+    } finally {
+      setSearchingEmployees(false);
+    }
+  };
+
+  const loadEmployeeForEdit = (employee: any) => {
+    setPersonal({
+      firstName: employee.firstName || '',
+      lastName: employee.lastName || '',
+      email: employee.email || '',
+      dateOfBirth: employee.dateOfBirth || '',
+      gender: employee.gender || '',
+      maritalStatus: employee.maritalStatus || '',
+      nationality: employee.nationality || '',
+      region: employee.region || '',
+      zone: employee.zone || '',
+      contactPhone: employee.contactPhone || '',
+      alternatePhone: employee.alternatePhone || '',
+      emergencyContact: employee.emergencyContact || '',
+      emergencyPhone: employee.emergencyPhone || '',
+      emergencyRelation: employee.emergencyRelation || '',
+      nationalId: employee.nationalId || '',
+      laborId: employee.laborId || '',
+      passportNumber: employee.passportNumber || '',
+      passportExpiryDate: employee.passportExpiryDate || '',
+      fatherName: employee.fatherName || '',
+      motherName: employee.motherName || '',
+      bankName: employee.bankName || '',
+      bankAccountNumber: employee.bankAccountNumber || '',
+      bankBranch: employee.bankBranch || ''
+    });
+    setShowEmployeeSearch(false);
+    setEmployeeSearchQuery('');
+    setSearchedEmployees([]);
   };
 
   // Get zones for selected region
@@ -360,6 +449,120 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      {/* Header with action buttons */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold text-ink">Employee Registration</h2>
+        
+        {/* Search Toggle */}
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+            <button
+              type="button"
+              onClick={() => { setShowEmployeeSearch(false); setShowDraftSelector(true); }}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                !showEmployeeSearch ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Search Drafts
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowEmployeeSearch(true); setShowDraftSelector(false); }}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                showEmployeeSearch ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Search Employees
+            </button>
+          </div>
+          
+          <button
+            type="button"
+            onClick={() => {
+              setDraftId(null);
+              setStep(0);
+              setPersonal({
+                firstName: '', lastName: '', email: '', dateOfBirth: '', gender: '',
+                maritalStatus: '', nationality: '', region: '', zone: '',
+                contactPhone: '', alternatePhone: '', emergencyContact: '', emergencyPhone: '',
+                emergencyRelation: '', nationalId: '', laborId: '', passportNumber: '', passportExpiryDate: '',
+                fatherName: '', motherName: '', bankName: '', bankAccountNumber: '', bankBranch: ''
+              });
+              setSkills({ education: '', role: '', experience: '', destination: '', languages: [], additionalSkills: '' });
+              setDocs({ docPath: '', tgVideoId: '' });
+            }}
+            className="flex items-center gap-2 rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+          >
+            <Plus className="h-4 w-4" />
+            New Registration
+          </button>
+        </div>
+      </div>
+
+      {/* Employee Search Bar */}
+      {showEmployeeSearch && (
+        <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search by name, passport number, or phone..."
+                value={employeeSearchQuery}
+                onChange={(e) => { setEmployeeSearchQuery(e.target.value); searchEmployees(e.target.value); }}
+                className="w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowEmployeeSearch(false)}
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"
+            >
+              Close
+            </button>
+          </div>
+          
+          {/* Search Results */}
+          {searchingEmployees && (
+            <p className="mt-3 text-sm text-slate-500">Searching...</p>
+          )}
+          
+          {!searchingEmployees && searchedEmployees.length > 0 && (
+            <div className="mt-3 max-h-60 overflow-auto rounded-lg border border-slate-200 bg-white">
+              {searchedEmployees.map((emp) => (
+                <button
+                  key={emp.id}
+                  type="button"
+                  onClick={() => loadEmployeeForEdit(emp)}
+                  className="flex w-full items-center justify-between border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-slate-50"
+                >
+                  <div>
+                    <p className="font-semibold text-ink">{emp.firstName} {emp.lastName}</p>
+                    <p className="text-xs text-slate-500">
+                      {emp.passportNumber && `Passport: ${emp.passportNumber} `}
+                      {emp.contactPhone && `• Phone: ${emp.contactPhone}`}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                    emp.status === 'REGISTERED' ? 'bg-blue-50 text-blue-700' :
+                    emp.status === 'INTERVIEW_UPLOADED' ? 'bg-purple-50 text-purple-700' :
+                    emp.status === 'PROCESSING' ? 'bg-yellow-50 text-yellow-700' :
+                    emp.status === 'DEPLOYED' ? 'bg-green-50 text-green-700' :
+                    'bg-slate-100 text-slate-600'
+                  }`}>
+                    {emp.status || 'Registered'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {!searchingEmployees && employeeSearchQuery && searchedEmployees.length === 0 && (
+            <p className="mt-3 text-sm text-slate-500">No employees found matching "{employeeSearchQuery}"</p>
+          )}
+        </div>
+      )}
+
       <ol className="mb-6 flex flex-wrap gap-2">
         {steps.map((name, index) => (
           <li
@@ -375,99 +578,109 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
       </ol>
 
       {step === 0 && (
-        <div className="space-y-6">
-          {/* Passport Scanner Section */}
+        <div className="space-y-5">
+          {/* ── Compact Passport Scanner ── */}
           <PassportScanner onAutoFill={handlePassportAutoFill} />
 
-          {/* Personal Information Fields */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <TextField
-              label="First Name"
-              value={personal.firstName}
-              onChange={(v) => setPersonal({ ...personal, firstName: v })}
-              required
-            />
-            <TextField
-              label="Last Name"
-              value={personal.lastName}
-              onChange={(v) => setPersonal({ ...personal, lastName: v })}
-              required
-            />
-            <TextField
-              label="Email"
-              type="email"
-              value={personal.email}
-              onChange={(v) => setPersonal({ ...personal, email: v })}
-            />
-            <TextField
-              label="Date of Birth"
-              type="date"
-              value={personal.dateOfBirth}
-              onChange={(v) => setPersonal({ ...personal, dateOfBirth: v })}
-            />
-            <SelectField
-              label="Gender"
-              value={personal.gender}
-              onChange={(v) => setPersonal({ ...personal, gender: v })}
-              options={genders}
-            />
-            <SelectField
-              label="Marital Status"
-              value={personal.maritalStatus}
-              onChange={(v) => setPersonal({ ...personal, maritalStatus: v })}
-              options={maritalStatus}
-            />
-            <SelectField
-              label="Nationality"
-              value={personal.nationality}
-              onChange={(v) => setPersonal({ ...personal, nationality: v })}
-              options={countries}
-            />
-            <SelectField
-              label="Region"
-              value={personal.region}
-              onChange={(v) => setPersonal({ ...personal, region: v, zone: '' })}
-              options={ethiopianRegions.map((r) => r.region)}
-            />
-            {personal.region && (
-              <SelectField
-                label="Zone"
-                value={personal.zone}
-                onChange={(v) => setPersonal({ ...personal, zone: v })}
-                options={zones}
+          {/* ── Personal Information ── */}
+          <div>
+            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Personal Information</h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextField
+                label="First Name *"
+                value={personal.firstName}
+                onChange={(v) => setPersonal({ ...personal, firstName: v })}
+                required
               />
-            )}
-            <TextField
-              label="Contact Phone"
-              type="tel"
-              value={personal.contactPhone}
-              onChange={(v) => setPersonal({ ...personal, contactPhone: v })}
-              required
-            />
-            <TextField
-              label="Alternate Phone"
-              type="tel"
-              value={personal.alternatePhone}
-              onChange={(v) => setPersonal({ ...personal, alternatePhone: v })}
-            />
-            <TextField
-              label="Emergency Contact Name"
-              value={personal.emergencyContact}
-              onChange={(v) => setPersonal({ ...personal, emergencyContact: v })}
-              required
-            />
-            <TextField
-              label="Emergency Contact Phone"
-              type="tel"
-              value={personal.emergencyPhone}
-              onChange={(v) => setPersonal({ ...personal, emergencyPhone: v })}
-              required
-            />
+              <TextField
+                label="Last Name *"
+                value={personal.lastName}
+                onChange={(v) => setPersonal({ ...personal, lastName: v })}
+                required
+              />
+              <TextField
+                label="Email"
+                type="email"
+                value={personal.email}
+                onChange={(v) => setPersonal({ ...personal, email: v })}
+              />
+              <TextField
+                label="Date of Birth"
+                type="date"
+                value={personal.dateOfBirth}
+                onChange={(v) => setPersonal({ ...personal, dateOfBirth: v })}
+              />
+              <SelectField
+                label="Gender"
+                value={personal.gender}
+                onChange={(v) => setPersonal({ ...personal, gender: v })}
+                options={genders}
+              />
+              <SelectField
+                label="Marital Status"
+                value={personal.maritalStatus}
+                onChange={(v) => setPersonal({ ...personal, maritalStatus: v })}
+                options={maritalStatus}
+              />
+              <SelectField
+                label="Nationality"
+                value={personal.nationality}
+                onChange={(v) => setPersonal({ ...personal, nationality: v })}
+                options={countries}
+              />
+              <SelectField
+                label="Region"
+                value={personal.region}
+                onChange={(v) => setPersonal({ ...personal, region: v, zone: '' })}
+                options={ethiopianRegions.map((r) => r.region)}
+              />
+              {personal.region && (
+                <SelectField
+                  label="Zone / Woreda"
+                  value={personal.zone}
+                  onChange={(v) => setPersonal({ ...personal, zone: v })}
+                  options={zones}
+                />
+              )}
+            </div>
           </div>
 
-          {/* ID and Passport Section */}
-          <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-blue-50 to-cyan-50 p-4">
-            <h4 className="mb-4 font-semibold text-ink">📋 Official IDs & Passport</h4>
+          {/* ── Contact Details ── */}
+          <div>
+            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Contact Details</h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextField
+                label="Contact Phone *"
+                type="tel"
+                value={personal.contactPhone}
+                onChange={(v) => setPersonal({ ...personal, contactPhone: v })}
+                required
+              />
+              <TextField
+                label="Alternate Phone"
+                type="tel"
+                value={personal.alternatePhone}
+                onChange={(v) => setPersonal({ ...personal, alternatePhone: v })}
+              />
+              <TextField
+                label="Emergency Contact Name *"
+                value={personal.emergencyContact}
+                onChange={(v) => setPersonal({ ...personal, emergencyContact: v })}
+                required
+              />
+              <TextField
+                label="Emergency Contact Phone *"
+                type="tel"
+                value={personal.emergencyPhone}
+                onChange={(v) => setPersonal({ ...personal, emergencyPhone: v })}
+                required
+              />
+            </div>
+          </div>
+
+          {/* ── Official IDs & Passport ── */}
+          <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50 p-4">
+            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-blue-500">📋 Official IDs & Passport</h4>
             <div className="grid gap-4 md:grid-cols-2">
               <TextField
                 label="National ID Number"
@@ -496,9 +709,9 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
             </div>
           </div>
 
-          {/* Family Information Section */}
-          <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-purple-50 to-pink-50 p-4">
-            <h4 className="mb-4 font-semibold text-ink">👨‍👩‍👧 Family Information</h4>
+          {/* ── Family Information ── */}
+          <div className="rounded-2xl border border-purple-100 bg-gradient-to-r from-purple-50 to-pink-50 p-4">
+            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-purple-500">👨‍👩‍👧 Family Information</h4>
             <div className="grid gap-4 md:grid-cols-2">
               <TextField
                 label="Father's Name"
@@ -514,8 +727,132 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
               />
             </div>
           </div>
+
+          {/* ── Emergency Contact Relation ── */}
+          <div>
+            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Emergency Contact Relationship</h4>
+            <div className="grid gap-4 md:grid-cols-3">
+              <TextField
+                label="Emergency Contact Name *"
+                value={personal.emergencyContact}
+                onChange={(v) => setPersonal({ ...personal, emergencyContact: v })}
+                required
+              />
+              <TextField
+                label="Emergency Phone *"
+                type="tel"
+                value={personal.emergencyPhone}
+                onChange={(v) => setPersonal({ ...personal, emergencyPhone: v })}
+                required
+              />
+              <SelectField
+                label="Relationship *"
+                value={personal.emergencyRelation}
+                onChange={(v) => setPersonal({ ...personal, emergencyRelation: v })}
+                options={['Spouse', 'Parent', 'Sibling', 'Child', 'Relative', 'Friend', 'Other']}
+              />
+            </div>
+          </div>
+
+          {/* ── Bank Account Information ── */}
+          <div className="rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-emerald-600">🏦 Bank Account Information</h4>
+            <div className="grid gap-4 md:grid-cols-3">
+              <SelectField
+                label="Bank Name"
+                value={personal.bankName}
+                onChange={(v) => setPersonal({ ...personal, bankName: v })}
+                options={['Commercial Bank of Ethiopia', 'Awash Bank', 'Dashen Bank', 'Bank of Abyssinia', 'Oromia Cooperative Bank', 'Berhan Bank', 'Nib International Bank', 'United Bank', 'Cooperative Bank of Oromia', 'Other']}
+              />
+              <TextField
+                label="Account Number"
+                value={personal.bankAccountNumber}
+                onChange={(v) => setPersonal({ ...personal, bankAccountNumber: v })}
+                placeholder="e.g., 1000123456789"
+              />
+              <TextField
+                label="Branch"
+                value={personal.bankBranch}
+                onChange={(v) => setPersonal({ ...personal, bankBranch: v })}
+                placeholder="e.g., Bole Branch"
+              />
+            </div>
+            <p className="mt-2 text-xs text-emerald-600">Used for salary remittance from abroad</p>
+          </div>
         </div>
       )}
+
+      {step === 2 && (() => {
+        const answered = Object.keys(psychology).length;
+        const total = PSYCH_QUESTIONS.length;
+        const rawScore = Object.values(psychology).reduce((sum, v) => sum + v, 0);
+        const maxScore = total * 3;
+        const pctScore = maxScore > 0 ? Math.round((rawScore / maxScore) * 100) : 0;
+        const getRisk = () => {
+          if (pctScore >= 75) return { label: 'Low Risk', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', bar: 'bg-emerald-500' };
+          if (pctScore >= 50) return { label: 'Medium Risk', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', bar: 'bg-amber-400' };
+          return { label: 'High Risk — Consider Counseling', color: 'text-red-700', bg: 'bg-red-50 border-red-200', bar: 'bg-red-500' };
+        };
+        const risk = getRisk();
+        return (
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 to-purple-50 p-4">
+              <h4 className="font-semibold text-violet-800 flex items-center gap-2">🧠 Psychological Suitability Assessment</h4>
+              <p className="mt-1 text-xs text-violet-600">This assessment helps predict employee retention. Research shows ~20% of overseas workers return early. Answer honestly to get an accurate suitability score.</p>
+              {answered > 0 && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-xs font-semibold mb-1">
+                    <span className={risk.color}>{risk.label}</span>
+                    <span className="text-slate-600">{answered}/{total} answered · Score: {pctScore}%</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-slate-200">
+                    <div className={`h-full rounded-full transition-all ${risk.bar}`} style={{ width: `${pctScore}%` }} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {PSYCH_QUESTIONS.map((q, qi) => (
+              <div key={q.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-sm font-semibold text-slate-800 mb-3">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-violet-700 text-xs font-bold mr-2">{qi + 1}</span>
+                  {q.text}
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {q.options.map((opt, oi) => (
+                    <button
+                      key={oi}
+                      type="button"
+                      onClick={() => setPsychology(prev => ({ ...prev, [q.id]: oi }))}
+                      className={`rounded-xl border px-4 py-2.5 text-left text-sm transition-all ${
+                        psychology[q.id] === oi
+                          ? 'border-violet-400 bg-violet-50 font-semibold text-violet-800'
+                          : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className={`mr-2 inline-block h-4 w-4 rounded-full border-2 align-middle ${
+                        psychology[q.id] === oi ? 'border-violet-500 bg-violet-500' : 'border-slate-300'
+                      }`} />
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {answered === total && (
+              <div className={`rounded-2xl border p-4 ${risk.bg}`}>
+                <p className={`font-bold text-sm ${risk.color}`}>Assessment Complete — Suitability Score: {pctScore}/100</p>
+                <p className="text-xs text-slate-600 mt-1">
+                  {pctScore >= 75 ? 'Employee shows strong suitability indicators. Recommended for deployment.' :
+                   pctScore >= 50 ? 'Employee may need additional pre-departure counseling before deployment.' :
+                   'High early-return risk. Mandatory counseling session recommended before proceeding.'}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {step === 1 && (
         <div className="space-y-6">
@@ -591,70 +928,163 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         </div>
       )}
 
-      {step === 2 && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <TextField label="Document path (Teledrive)" value={docs.docPath} onChange={(v) => setDocs({ ...docs, docPath: v })} />
-            <label className="flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 py-4 hover:bg-slate-100">
-              <span className="text-sm font-medium text-slate-600">Click to upload Photo/Passport</span>
-              <input 
-                type="file" 
-                className="hidden" 
-                accept="image/*,application/pdf"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  setUploadingFiles(true);
-                  try {
-                    const fd = new FormData();
-                    fd.append('file', file);
-                    fd.append('folder', 'documents');
-                    const res = await fetch('/api/upload', { method: 'POST', body: fd });
-                    const data = await res.json();
-                    if (data.success && data.data?.filePath) {
-                      setDocs(d => ({ ...d, docPath: data.data.filePath }));
-                    }
-                  } finally {
-                    setUploadingFiles(false);
-                  }
-                }}
+
+      {step === 3 && (
+        <div className="space-y-5">
+          {/* Photo & Documents */}
+          <div>
+            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Photo & Documents</h4>
+            <div className="flex flex-col gap-3">
+              {docs.docPath ? (
+                <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-emerald-800">Document uploaded</p>
+                    <p className="truncate text-xs text-emerald-700">{docs.docPath}</p>
+                  </div>
+                  <button type="button" onClick={() => setDocs({ ...docs, docPath: '' })} className="text-slate-400 hover:text-red-500">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className={`flex w-full cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed px-5 py-4 transition-colors ${
+                  uploadingFiles ? 'border-brand-300 bg-brand-50' : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-white'
+                }`}>
+                  {uploadingFiles ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-brand-500 shrink-0" />
+                  ) : (
+                    <Upload className="h-6 w-6 text-slate-400 shrink-0" />
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">
+                      {uploadingFiles ? 'Uploading...' : 'Upload Photo / Passport Copy'}
+                    </p>
+                    <p className="text-xs text-slate-400">JPG, PNG, PDF — max 10MB</p>
+                  </div>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*,application/pdf"
+                    disabled={uploadingFiles}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploadingFiles(true);
+                      setUploadError(null);
+                      try {
+                        const fd = new FormData();
+                        fd.append('file', file);
+                        fd.append('folder', 'documents');
+                        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                        const data = await res.json();
+                        if (data.success && data.data?.filePath) {
+                          setDocs(d => ({ ...d, docPath: data.data.filePath }));
+                        } else {
+                          setUploadError(data.error?.message || 'Upload failed');
+                        }
+                      } catch (err) {
+                        setUploadError('Upload failed. Please try again.');
+                      } finally {
+                        setUploadingFiles(false);
+                      }
+                    }}
+                  />
+                </label>
+              )}
+              <TextField
+                label="Or enter Teledrive path manually"
+                value={docs.docPath}
+                onChange={(v) => setDocs({ ...docs, docPath: v })}
+                placeholder="e.g., /documents/employee_photo.jpg"
               />
-            </label>
+              {uploadError && (
+                <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                  <AlertTriangle className="h-4 w-4" />
+                  {uploadError}
+                  <button onClick={() => setUploadError(null)} className="ml-auto text-red-400 hover:text-red-700">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-          
-          <div className="space-y-2">
-            <TextField label="Telegram video ID" value={docs.tgVideoId} onChange={(v) => setDocs({ ...docs, tgVideoId: v })} />
-            <label className="flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 py-4 hover:bg-slate-100">
-              <span className="text-sm font-medium text-slate-600">Click to upload Interview Video</span>
-              <input 
-                type="file" 
-                className="hidden" 
-                accept="video/*"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  setUploadingFiles(true);
-                  try {
-                    const fd = new FormData();
-                    fd.append('file', file);
-                    fd.append('caption', `Interview video for ${personal.firstName}`);
-                    const res = await fetch('/api/upload', { method: 'POST', body: fd });
-                    const data = await res.json();
-                    if (data.success && data.data?.fileId) {
-                      setDocs(d => ({ ...d, tgVideoId: data.data.fileId }));
-                    }
-                  } finally {
-                    setUploadingFiles(false);
-                  }
-                }}
-              />
-            </label>
+
+          {/* Interview Video */}
+          <div className="rounded-2xl border border-purple-200 bg-purple-50/50 p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="rounded-xl bg-purple-100 p-2 text-purple-600">
+                <Video className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-ink">Interview Video</h4>
+                <p className="text-xs text-purple-600">Short introduction video for overseas employers</p>
+              </div>
+            </div>
+
+            {docs.tgVideoId ? (
+              <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-emerald-800">Interview uploaded!</p>
+                  <p className="text-xs text-emerald-700">Telegram ID: {docs.tgVideoId}</p>
+                </div>
+                <button type="button" onClick={() => setDocs({ ...docs, tgVideoId: '' })} className="text-slate-400 hover:text-red-500">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInterviewModal(true)}
+                  className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-purple-300 bg-white p-4 hover:bg-purple-50 transition-colors"
+                >
+                  <Video className="h-7 w-7 text-purple-500 mb-2" />
+                  <span className="text-sm font-semibold text-purple-700">Record via Telegram</span>
+                  <span className="text-xs text-purple-400">Send through bot</span>
+                </button>
+                <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white p-4 hover:bg-slate-50 cursor-pointer transition-colors">
+                  <Upload className="h-7 w-7 text-slate-400 mb-2" />
+                  <span className="text-sm font-semibold text-slate-600">Upload Video File</span>
+                  <span className="text-xs text-slate-400">MP4, MOV, AVI</span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="video/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setInterviewUploading(true);
+                      try {
+                        const fd = new FormData();
+                        fd.append('video', file);
+                        fd.append('employeeName', `${personal.firstName} ${personal.lastName}`);
+                        const res = await fetch('/api/telegram/interview', { method: 'POST', body: fd });
+                        const data = await res.json();
+                        if (data.success && data.data?.fileId) {
+                          setDocs(d => ({ ...d, tgVideoId: data.data.fileId }));
+                        }
+                      } catch (err) {
+                        console.error('Upload failed:', err);
+                      } finally {
+                        setInterviewUploading(false);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            )}
+            {interviewUploading && (
+              <div className="mt-3 flex items-center gap-2 text-sm text-purple-700">
+                <Loader2 className="h-4 w-4 animate-spin" /> Uploading to Telegram...
+              </div>
+            )}
+            <p className="mt-3 text-xs text-slate-400">Stored privately in your Telegram channel. Accessible to authorized partners only.</p>
           </div>
-          <p className="md:col-span-2 text-sm text-slate-500">You can manually paste paths/IDs, or use the upload boxes above to automatically send files to Teledrive/Telegram.</p>
         </div>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <div className="space-y-6">
           <div className="rounded-2xl bg-brand-50 p-4">
             <h3 className="mb-3 font-semibold text-ink">👤 Personal Information</h3>
@@ -672,6 +1102,7 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
               <p><strong>Alternate Phone:</strong> {personal.alternatePhone || '-'}</p>
               <p><strong>Emergency Contact:</strong> {personal.emergencyContact || '-'}</p>
               <p><strong>Emergency Phone:</strong> {personal.emergencyPhone || '-'}</p>
+              <p><strong>Relationship:</strong> {personal.emergencyRelation || '-'}</p>
             </div>
           </div>
 
@@ -690,6 +1121,23 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
               <p><strong>Father's Name:</strong> {personal.fatherName || '-'}</p>
               <p><strong>Mother's Name:</strong> {personal.motherName || '-'}</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-teal-50 p-4">
+            <h3 className="mb-3 font-semibold text-ink">🏦 Bank Account</h3>
+            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+              <p><strong>Bank:</strong> {personal.bankName || '-'}</p>
+              <p><strong>Account No:</strong> {personal.bankAccountNumber || '-'}</p>
+              <p><strong>Branch:</strong> {personal.bankBranch || '-'}</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-violet-50 p-4">
+            <h3 className="mb-3 font-semibold text-ink">🧠 Psychology Assessment</h3>
+            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+              <p><strong>Questions Answered:</strong> {Object.keys(psychology).length}/{PSYCH_QUESTIONS.length}</p>
+              <p><strong>Suitability Score:</strong> {PSYCH_QUESTIONS.length > 0 ? Math.round((Object.values(psychology).reduce((a,b)=>a+b,0) / (PSYCH_QUESTIONS.length * 3)) * 100) : 0}%</p>
             </div>
           </div>
 
@@ -728,79 +1176,76 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         </div>
       )}
 
-      <div className="mt-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={prev}
-            disabled={step === 0}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 disabled:opacity-40"
-          >
-            <ChevronLeft className="h-4 w-4" /> Back
-          </button>
-          
-          {/* Draft selector */}
-          <button
-            type="button"
-            onClick={() => setShowDraftSelector(true)}
-            className="inline-flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100"
-          >
-            <Clock className="h-4 w-4" />
-            {draftId ? 'Continue Draft' : 'Saved Drafts'}
-            {existingDrafts.length > 0 && (
-              <span className="ml-1 rounded-full bg-amber-200 px-2 py-0.5 text-xs">{existingDrafts.length}</span>
-            )}
-          </button>
-        </div>
+      {/* Operations - Bottom Navigation */}
+      <div className="mt-8 border-t border-slate-200 pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          {/* Left Side - Navigation */}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={prev}
+              disabled={step === 0}
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" /> Back
+            </button>
+            
+            {/* Draft selector */}
+            <button
+              type="button"
+              onClick={() => setShowDraftSelector(true)}
+              className="inline-flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 hover:bg-amber-100"
+            >
+              <Clock className="h-4 w-4" />
+              {draftId ? 'Continue Draft' : 'Saved Drafts'}
+              {existingDrafts.length > 0 && (
+                <span className="ml-1 rounded-full bg-amber-200 px-2 py-0.5 text-xs">{existingDrafts.length}</span>
+              )}
+            </button>
+          </div>
 
-        {step < steps.length - 1 ? (
-          <div className="flex gap-3">
-<button
+          {/* Right Side - Actions */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Save Draft Button */}
+            <button
               type="button"
               onClick={() => saveDraft(true)}
               disabled={
-                (step === 0 && (!personal.firstName.trim() || !personal.lastName.trim() || !personal.contactPhone.trim())) ||
-                (step === 1 && !skills.role)
+                (step === 0 && (!personal.firstName.trim() || !personal.lastName.trim())) ||
+                submitting
               }
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
             >
               <Save className="h-4 w-4" />
               Save Draft
             </button>
-            <button
-              type="button"
-              onClick={next}
-              disabled={
-                (step === 0 && (!personal.firstName.trim() || !personal.lastName.trim() || !personal.contactPhone.trim())) ||
-                (step === 1 && !skills.role)
-              }
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-            >
-              <Save className="h-4 w-4" />
-              Save Draft
-            </button>
-            <button
-              type="button"
-              onClick={next}
-              disabled={
-                (step === 0 && (!personal.firstName.trim() || !personal.lastName.trim() || !personal.contactPhone.trim())) ||
-                (step === 1 && !skills.role)
-              }
-              className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-            >
-              Next <ChevronRight className="h-4 w-4" />
-            </button>
+
+            {step < steps.length - 1 ? (
+              <button
+                type="button"
+                onClick={next}
+                disabled={
+                  (step === 0 && (!personal.firstName.trim() || !personal.lastName.trim() || !personal.contactPhone.trim())) ||
+                  (step === 1 && !skills.role)
+                }
+                className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+              >
+                {step === 2 && Object.keys(psychology).length < PSYCH_QUESTIONS.length
+                  ? `Answer All Questions (${Object.keys(psychology).length}/${PSYCH_QUESTIONS.length})`
+                  : <>Next <ChevronRight className="h-4 w-4" /></>}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onSubmit}
+                disabled={submitting || uploadingFiles}
+                className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+              >
+                {submitting ? 'Submitting...' : uploadingFiles ? 'Uploading...' : 'Submit Registration'}
+              </button>
+            )}
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={onSubmit}
-            disabled={submitting || uploadingFiles}
-            className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-          >
-            {submitting ? 'Submitting...' : uploadingFiles ? 'Uploading...' : 'Submit registration'}
-          </button>
-        )}
+        </div>
       </div>
 
       {/* Autosave indicator */}
@@ -825,9 +1270,42 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
       )}
 
       {result ? (
-        <p className={`mt-4 rounded-2xl px-4 py-3 text-sm font-semibold ${result.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
-          {result.message}
-        </p>
+        <div className="mt-4 space-y-3">
+          <p className={`rounded-2xl px-4 py-3 text-sm font-semibold ${result.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+            {result.message}
+          </p>
+          {result.ok && (
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setDraftId(null);
+                  setStep(0);
+                  setPersonal({
+                    firstName: '', lastName: '', email: '', dateOfBirth: '', gender: '',
+                    maritalStatus: '', nationality: '', region: '', zone: '',
+                    contactPhone: '', alternatePhone: '', emergencyContact: '', emergencyPhone: '',
+                    emergencyRelation: '', nationalId: '', laborId: '', passportNumber: '', passportExpiryDate: '',
+                    fatherName: '', motherName: '', bankName: '', bankAccountNumber: '', bankBranch: ''
+                  });
+                  setSkills({ education: '', role: '', experience: '', destination: '', languages: [], additionalSkills: '' });
+                  setDocs({ docPath: '', tgVideoId: '' });
+                  setResult(null);
+                }}
+                className="flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+              >
+                <span>+</span> Register New Employee
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDraftSelector(true)}
+                className="flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Search & Edit Draft
+              </button>
+            </div>
+          )}
+        </div>
       ) : null}
 
       {/* Draft Selector Modal */}
@@ -845,9 +1323,43 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
               </button>
             </div>
 
-            {existingDrafts.length > 0 ? (
+            {/* Search Input */}
+            <div className="mb-4 relative">
+              <input
+                type="text"
+                placeholder="Search by name, passport, or phone..."
+                value={draftSearchQuery}
+                onChange={(e) => setDraftSearchQuery(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 pr-10 text-sm focus:border-brand-500 focus:outline-none"
+              />
+              {draftSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setDraftSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {existingDrafts.filter(d => {
+              const query = draftSearchQuery.toLowerCase();
+              if (!query) return true;
+              const name = `${d.personal?.firstName || ''} ${d.personal?.lastName || ''}`.toLowerCase();
+              const passport = d.personal?.passportNumber?.toLowerCase() || '';
+              const phone = d.personal?.contactPhone?.toLowerCase() || '';
+              return name.includes(query) || passport.includes(query) || phone.includes(query);
+            }).length > 0 ? (
               <div className="space-y-3">
-                {existingDrafts.map((draft) => (
+                {existingDrafts.filter(d => {
+              const query = draftSearchQuery.toLowerCase();
+              if (!query) return true;
+              const name = `${d.personal?.firstName || ''} ${d.personal?.lastName || ''}`.toLowerCase();
+              const passport = d.personal?.passportNumber?.toLowerCase() || '';
+              const phone = d.personal?.contactPhone?.toLowerCase() || '';
+              return name.includes(query) || passport.includes(query) || phone.includes(query);
+            }).map((draft) => (
                   <div
                     key={draft.id}
                     className="flex items-center justify-between rounded-2xl border border-slate-200 p-4 hover:border-brand-300"
@@ -859,6 +1371,12 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
                       <p className="text-sm text-slate-500">
                         Step {draft.step + 1}: {steps[draft.step]} • Created: {new Date(draft.createdAt).toLocaleDateString()}
                       </p>
+                      {(draft.personal?.passportNumber || draft.personal?.contactPhone) && (
+                        <p className="text-xs text-slate-400 mt-1">
+                          {draft.personal?.passportNumber && <span>Passport: {draft.personal.passportNumber} </span>}
+                          {draft.personal?.contactPhone && <span>Phone: {draft.personal.contactPhone}</span>}
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -880,7 +1398,10 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
                 ))}
               </div>
             ) : (
-              <p className="text-center text-slate-500">No saved drafts found.</p>
+              <div className="text-center py-8">
+                <p className="text-slate-500">{draftSearchQuery ? 'No drafts match your search.' : 'No saved drafts found.'}</p>
+                <p className="text-sm text-slate-400 mt-2">Click "Start New Registration" to begin.</p>
+              </div>
             )}
 
             <button
@@ -890,6 +1411,90 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
             >
               Start New Registration
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Interview Modal */}
+      {showInterviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-ink flex items-center gap-2">
+                <Video className="h-6 w-6 text-purple-600" />
+                Record Interview
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowInterviewModal(false)}
+                className="rounded-full p-2 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mb-4 rounded-2xl bg-purple-50 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageCircle className="h-5 w-5 text-purple-600" />
+                <span className="font-semibold text-purple-800">Via Telegram</span>
+              </div>
+              <p className="text-sm text-purple-700">
+                Videos are sent to your private Telegram channel for secure storage and streaming to international partners.
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Employee Name
+              </label>
+              <input
+                type="text"
+                value={`${personal.firstName} ${personal.lastName}`.trim()}
+                readOnly
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Select Video File
+              </label>
+              <input
+                type="file"
+                accept="video/*"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setInterviewUploading(true);
+                  try {
+                    const fd = new FormData();
+                    fd.append('video', file);
+                    fd.append('employeeName', `${personal.firstName} ${personal.lastName}`.trim());
+                    const res = await fetch('/api/telegram/interview', { method: 'POST', body: fd });
+                    const data = await res.json();
+                    if (data.success && data.data?.fileId) {
+                      setDocs(d => ({ ...d, tgVideoId: data.data.fileId }));
+                      setShowInterviewModal(false);
+                    }
+                  } catch (err) {
+                    console.error('Interview upload failed:', err);
+                  } finally {
+                    setInterviewUploading(false);
+                  }
+                }}
+              />
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowInterviewModal(false)}
+                className="flex-1 rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

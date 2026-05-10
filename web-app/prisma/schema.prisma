@@ -86,6 +86,7 @@ model Employee {
   alternatePhone      String?
   emergencyContact    String?
   emergencyPhone      String?
+  emergencyRelation   String?        // e.g., Spouse, Parent, Sibling
   
   // IDs & Passport (NEW)
   nationalId          String?
@@ -93,9 +94,14 @@ model Employee {
   passportNumber      String?
   passportExpiryDate  DateTime?
   
-  // Family Information (NEW)
+  // Family Information
   fatherName          String?
   motherName          String?
+
+  // Bank Account Information
+  bankName            String?
+  bankAccountNumber   String?
+  bankBranch          String?
   
   // Skills & Qualifications
   role                String?
@@ -104,7 +110,12 @@ model Employee {
   destination         String?
   languages           String?        // JSON array stored as string
   additionalSkills    String?
-  
+
+  // Psychology Assessment
+  psychologyScore     Int?           // 0-100 compatibility score
+  psychologyAnswers   String?        // JSON array of assessment answers
+  psychologyNotes     String?        // Admin notes on assessment
+
   // Documents
   docPath             String?
   tgVideoId           String?

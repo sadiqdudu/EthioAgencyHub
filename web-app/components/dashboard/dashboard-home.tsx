@@ -1,12 +1,61 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Cloud, FileVideo, UploadCloud, TrendingUp, Users, FileText, Briefcase } from 'lucide-react';
-import { activities, employees, kpis, modules, storageRoutes } from '@/lib/mock-data';
+import { ArrowRight, CheckCircle2, Cloud, FileVideo, UploadCloud, TrendingUp, Users, FileText, Briefcase, Search, X } from 'lucide-react';
+import { activities, employees as mockEmployees, kpis, modules, storageRoutes } from '@/lib/mock-data';
 import { useLanguage } from '@/components/layout/language-provider';
+
+interface Employee {
+  id: string;
+  name: string;
+  role?: string;
+  destination?: string;
+  status: string;
+}
 
 export function DashboardHome() {
   const { dict } = useLanguage();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await fetch('/api/employees?limit=20');
+      const data = await res.json();
+      if (data.success && data.data) {
+        const mapped = data.data.map((e: any) => ({
+          id: e.id || e.id,
+          name: `${e.firstName || ''} ${e.lastName || ''}`.trim() || 'Unknown',
+          role: e.role || e.jobRole || '-',
+          destination: e.destination || '-',
+          status: e.status || 'REGISTERED'
+        }));
+        setEmployees(mapped);
+      } else {
+        setEmployees(mockEmployees);
+      }
+    } catch (error) {
+      console.error('Failed to fetch employees:', error);
+      setEmployees(mockEmployees);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredEmployees = searchQuery.trim()
+    ? employees.filter(emp => 
+        emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.destination?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.id.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : employees;
 
   return (
     <div className="space-y-8">
@@ -132,15 +181,33 @@ export function DashboardHome() {
 
       {/* Recent Employees Section */}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-brand-600" />
             <h3 className="text-lg font-bold text-ink">Recent employees</h3>
           </div>
-          <Link href="/employee-management" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
-            View all →
-          </Link>
+          
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by name, role, destination..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-64 rounded-xl border border-slate-300 py-2 pl-9 pr-8 text-sm focus:border-brand-500 focus:outline-none"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
+        
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -153,22 +220,44 @@ export function DashboardHome() {
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp) => (
-                <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 font-semibold text-brand-600">{emp.id}</td>
-                  <td className="px-4 py-3 text-slate-600">{emp.name}</td>
-                  <td className="px-4 py-3 text-slate-600">{emp.role}</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-block rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                      {emp.status}
-                    </span>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                    Loading employees...
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{emp.destination}</td>
                 </tr>
-              ))}
+              ) : filteredEmployees.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                    {searchQuery ? `No employees found matching "${searchQuery}"` : 'No employees found'}
+                  </td>
+                </tr>
+              ) : (
+                filteredEmployees.slice(0, 10).map((emp) => (
+                  <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-3 font-semibold text-brand-600">{emp.id}</td>
+                    <td className="px-4 py-3 text-slate-600">{emp.name}</td>
+                    <td className="px-4 py-3 text-slate-600">{emp.role}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-block rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                        {emp.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{emp.destination}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
+        
+        {filteredEmployees.length > 10 && (
+          <div className="mt-4 text-center">
+            <Link href="/employee-management" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
+              View all {filteredEmployees.length} employees →
+            </Link>
+          </div>
+        )}
       </section>
 
       {/* Quick Stats Row */}

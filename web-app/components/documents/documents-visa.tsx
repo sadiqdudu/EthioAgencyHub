@@ -1,17 +1,44 @@
 'use client';
 
-import { useState } from 'react';
-import { Clock, CheckCircle2, AlertCircle, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Clock, CheckCircle2, AlertCircle, Search, User, RotateCcw } from 'lucide-react';
+
+interface Employee {
+  id: string;
+  name: string;
+  destination?: string;
+}
 
 export function DocumentsVisa() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(true);
   
-  const applications = [
-    { employee: 'Mekdes Tesfaye', destination: 'Saudi Arabia', status: 'Approved', applied: '15 Apr', icon: CheckCircle2, color: 'text-green-600' },
-    { employee: 'Hana Bekele', destination: 'UAE', status: 'In Review', applied: '18 Apr', icon: Clock, color: 'text-blue-600' },
-    { employee: 'Selamawit Alemu', destination: 'Qatar', status: 'Pending Documents', applied: '20 Apr', icon: AlertCircle, color: 'text-yellow-600' },
-    { employee: 'Rahel Tadesse', destination: 'Kuwait', status: 'Rejected', applied: '12 Apr', icon: AlertCircle, color: 'text-red-600' },
-  ];
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const res = await fetch('/api/employees?limit=1000');
+        const data = await res.json();
+        if (data.success && data.data) {
+          setEmployees(data.data.map((emp: any) => ({ id: emp.id, name: emp.name, destination: emp.destination })));
+        }
+      } catch (error) {
+        console.error('Failed to fetch employees:', error);
+      } finally {
+        setLoadingEmployees(false);
+      }
+    };
+    fetchEmployees();
+  }, []);
+
+  const applications = employees.map(emp => ({
+    employee: emp.name,
+    destination: emp.destination || 'Not specified',
+    status: 'Pending',
+    applied: new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short' }),
+    icon: Clock,
+    color: 'text-blue-600'
+  }));
 
   const filteredApps = applications.filter(app => app.employee.toLowerCase().includes(searchQuery.toLowerCase()));
 

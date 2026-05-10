@@ -16,7 +16,8 @@ import {
   ChevronRight, 
   Users, 
   Eye,
-  UserRound
+  UserRound,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -50,6 +51,10 @@ export function EmployeeManagementModule() {
   const [recentEmployees, setRecentEmployees] = useState<RecentEmployee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<RecentEmployee[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -107,6 +112,38 @@ export function EmployeeManagementModule() {
     }
   };
 
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowSearch(false);
+      return;
+    }
+    setSearching(true);
+    setShowSearch(true);
+    try {
+      const res = await fetch(`/api/employees/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setSearchResults(data.data.map((e: any) => ({
+          id: e.id,
+          name: `${e.firstName || ''} ${e.lastName || ''}`.trim() || 'Unknown',
+          role: e.role || e.jobRole || '-',
+          destination: e.destination || '-',
+          status: e.status || 'REGISTERED',
+          registeredAt: e.createdAt || new Date().toISOString()
+        })));
+      } else {
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'REGISTERED':
@@ -140,21 +177,82 @@ export function EmployeeManagementModule() {
     <div className="space-y-8 pb-10">
       {/* Hero Header */}
       <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-brand-50/30 to-white p-8 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-6">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
           <div>
             <h2 className="text-3xl font-extrabold text-ink">Employee Management</h2>
             <p className="mt-3 text-slate-600 max-w-lg">
               Register new workers, manage their lifecycle, generate CVs, and track deployment readiness across <span className="font-bold text-brand-600">{stats.total}</span> employees.
             </p>
           </div>
-          <Link
-            href="/employee-management/registration/personal"
-            className="flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3.5 text-sm font-bold text-white hover:bg-brand-700 shadow-md shadow-brand-600/20 transition-all hover:shadow-lg"
-          >
-            <Plus className="h-5 w-5" />
-            Register New Employee
-          </Link>
+          
+          {/* Search and Actions */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            {/* Search Input */}
+            <div className="relative flex-1 lg:w-64">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search employees..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-8 text-sm focus:border-brand-500 focus:outline-none"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setShowSearch(false); setSearchResults([]); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            
+            <Link
+              href="/employee-management/registration/personal"
+              className="flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-700 shadow-md shadow-brand-600/20 transition-all hover:shadow-lg"
+            >
+              <Plus className="h-5 w-5" />
+              Register New
+            </Link>
+          </div>
         </div>
+        
+        {/* Search Results Dropdown */}
+        {showSearch && (
+          <div className="mt-4 max-h-80 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+            {searching ? (
+              <div className="p-4 text-center text-slate-500">Searching...</div>
+            ) : searchResults.length > 0 ? (
+              <div className="divide-y divide-slate-100">
+                {searchResults.map((emp) => (
+                  <Link
+                    key={emp.id}
+                    href={`/employee-management/${emp.id}`}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-slate-50"
+                  >
+                    <div>
+                      <p className="font-semibold text-ink">{emp.name}</p>
+                      <p className="text-xs text-slate-500">{emp.role} • {emp.destination}</p>
+                    </div>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                      emp.status === 'DEPLOYED' ? 'bg-green-50 text-green-700' :
+                      emp.status === 'TRAVEL_READY' ? 'bg-emerald-50 text-emerald-700' :
+                      emp.status === 'INTERVIEW_UPLOADED' ? 'bg-purple-50 text-purple-700' :
+                      emp.status === 'DOCUMENT_REVIEW' ? 'bg-amber-50 text-amber-700' :
+                      'bg-blue-50 text-blue-700'
+                    }`}>
+                      {emp.status}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 text-center text-slate-500">
+                No employees found matching "{searchQuery}"
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Pipeline Status Grid */}

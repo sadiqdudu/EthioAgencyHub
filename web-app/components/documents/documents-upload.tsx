@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, CheckCircle2, FileText, AlertCircle, Search, User, FileType, Loader2, Cloud, X } from 'lucide-react';
 
 interface UploadedFile {
@@ -13,6 +13,11 @@ interface UploadedFile {
   route: 'teledrive' | 'telegram';
 }
 
+interface Employee {
+  id: string;
+  name: string;
+}
+
 export function DocumentsUpload() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState('');
@@ -20,6 +25,8 @@ export function DocumentsUpload() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(true);
   const [uploads, setUploads] = useState<UploadedFile[]>([
     { id: '1', name: 'mekdes_tesfaye_passport.pdf', employee: 'Mekdes Tesfaye', size: '2.4 MB', status: 'Verified', type: 'Passport', route: 'teledrive' },
     { id: '2', name: 'hana_bekele_medical.jpg', employee: 'Hana Bekele', size: '1.8 MB', status: 'In Review', type: 'Medical Certificate', route: 'teledrive' },
@@ -27,8 +34,24 @@ export function DocumentsUpload() {
   ]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = ['Mekdes Tesfaye', 'Hana Bekele', 'Selamawit Alemu', 'Rahel Tadesse'];
   const docTypes = ['Passport', 'Medical Certificate', 'Visa Form', 'Contract', 'ID Card', 'Profile Photo'];
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const res = await fetch('/api/employees?limit=1000');
+        const data = await res.json();
+        if (data.success && data.data) {
+          setEmployees(data.data.map((emp: any) => ({ id: emp.id, name: emp.name })));
+        }
+      } catch (error) {
+        console.error('Failed to fetch employees:', error);
+      } finally {
+        setLoadingEmployees(false);
+      }
+    };
+    fetchEmployees();
+  }, []);
 
   const filteredUploads = uploads.filter(u =>
     u.employee.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -119,9 +142,10 @@ export function DocumentsUpload() {
                   value={selectedEmployee}
                   onChange={(e) => setSelectedEmployee(e.target.value)}
                   className="w-full rounded-xl border border-slate-300 py-3 pl-11 pr-4 text-sm font-medium text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 appearance-none bg-white cursor-pointer"
+                  disabled={loadingEmployees}
                 >
-                  <option value="" disabled>Choose an employee...</option>
-                  {employees.map(emp => <option key={emp} value={emp}>{emp}</option>)}
+                  <option value="" disabled>{loadingEmployees ? 'Loading employees...' : 'Choose an employee...'}</option>
+                  {employees.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
                 </select>
               </div>
             </div>

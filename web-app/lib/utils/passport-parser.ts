@@ -1,4 +1,4 @@
-// Passport OCR parsing utilities
+// Passport OCR parsing utilities - Enhanced Version
 
 export interface PassportData {
   surname?: string;
@@ -16,94 +16,245 @@ export interface PassportData {
 }
 
 /**
- * Parse passport OCR text and extract relevant data
+ * Normalize OCR text by fixing common OCR errors
+ */
+function normalizeText(text: string): string {
+  return text
+    .replace(/[|]/g, 'I')
+    .replace(/0(?=\d{3})/g, 'O')
+    .replace(/\b(surn|surnam|surna|surnme)\b/gi, 'surname')
+    .replace(/\b(given|givn|givin)\b/gi, 'given names')
+    .replace(/\b(nation|nationa)\b/gi, 'nationality')
+    .replace(/\b(expir|expiry|expirat|expirtaion)\b/gi, 'expiry')
+    .replace(/\b(issue|issu|isue)\b/gi, 'issue')
+    .replace(/\b(passport|passprt|pasport)\b/gi, 'passport')
+    .replace(/ETH[1Il]OplA/gi, 'ETHIOPIA')
+    .replace(/\b(ETH[1Il]OPlAN)\b/gi, 'ETHIOPIAN')
+    .trim();
+}
+
+/**
+ * Flexible field extractor that tries multiple patterns
+ */
+function extractField(text: string, patterns: RegExp[]): string | undefined {
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1] && match[1].trim().length > 0) {
+      return match[1].trim();
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Parse passport OCR text and extract relevant data - Enhanced with multiple fallback patterns
  */
 export function parsePassportData(ocrText: string): PassportData {
-  const lines = ocrText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  
+  const normalized = normalizeText(ocrText);
   const data: PassportData = {};
 
-  // Try to find surname (usually first all-caps section)
-  const surnameMatch = ocrText.match(/(?:surname|SUR NAME|SURNAME)\s*[:\s]*([A-Z\s]+?)(?=\n|$)/i);
-  if (surnameMatch) data.surname = surnameMatch[1].trim();
+  // ---- SURNAME (Last Name) ----
+  data.surname = extractField(normalized, [
+    /(?:surname|sur name|family name|last name)\s*[:;#]\s*([A-Z][A-Za-z\s\-]{1,30})/i,
+    /(?:surname|sur name|family name|last name)\s*(?:is|:)?\s*\n?\s*([A-Z][A-Za-z\s\-]{1,30})/i,
+    /\n\s*([A-Z]{2,20})\s*\n\s*(?:[A-Z]{2,20})/,
+    /Surname.*?\n.*?([A-Z]{2,20})(?=\s*\n|\s*Given)/i
+  ]);
 
-  // Try to find given names
-  const givenMatch = ocrText.match(/(?:given names|GIVEN NAMES|PRENOM)\s*[:\s]*([A-Za-z\s]+?)(?=\n|$)/i);
-  if (givenMatch) data.givenNames = givenMatch[1].trim();
+  // If still no surname, try to find all-caps name near top
+  if (!data.surname) {
+    const lines = normalized.split('\n').map(l => l.trim()).filter(l => l.length > 1);
+    for (const line of lines) {
+      if (/^[A-Z]{2,20}$/.test(line)) {
+        data.surname = line;
+        break;
+      }
+    }
+  }
 
-  // Try to find nationality
-  const nationalityMatch = ocrText.match(/(?:nationality|NATIONALITY)\s*[:\s]*([A-Z]+)/i);
-  if (nationalityMatch) data.nationality = nationalityMatch[1].trim();
+  // ---- GIVEN NAMES (First Name) ----
+  data.givenNames = extractField(normalized, [
+    /(?:given names|given name|first name|prename|prenom)\s*[:;#]\s*([A-Z][A-Za-z\s\-]{1,40})/i,
+    /(?:given names|given name|first name|prename|prenom)\s*(?:is|:)?\s*\n?\s*([A-Z][A-Za-z\s\-]{1,40})/i,
+    /Given Names.*?\n.*?([A-Z]{2,20}(?:\s+[A-Z]{2,20})?)(?=\s*\n|\s*Nationality)/i
+  ]);
 
-  // Try to find date of birth (various formats: DD/MM/YYYY, YYYY-MM-DD, etc.)
-  const dobMatch = ocrText.match(/(?:date of birth|DOB|D\.O\.B)\s*[:\s]*(\d{1,4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,4})/i);
-  if (dobMatch) data.dateOfBirth = formatDateToISO(dobMatch[1]);
+  // ---- NATIONALITY ----
+  data.nationality = extractField(normalized, [
+    /(?:nationality|citizenship|nation)\s*[:;#]\s*([A-Z]{3,20})/i,
+    /(?:nationality|citizenship|nation)\s*(?:is|:)?\s*\n?\s*([A-Z]{3,20})/i,
+    /Ethiopian/i
+  ]);
+  if (data.nationality?.toLowerCase() === 'ethiopian') data.nationality = 'ETHIOPIAN';
 
-  // Try to find sex/gender
-  const sexMatch = ocrText.match(/(?:sex|SEX|GENDER)\s*[:\s]*([MF])/i);
-  if (sexMatch) data.sex = sexMatch[1].toUpperCase() === 'M' ? 'Male' : 'Female';
+  // ---- DATE OF BIRTH ----
+  const dobRaw = extractField(normalized, [
+    /(?:date of birth|dob|birth date|born)\s*[:;#]\s*(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4})/i,
+    /(?:date of birth|dob|birth date|born)\s*[:;#]\s*(\d{4}[\/\.\-]\d{1,2}[\/\.\-]\d{1,2})/i,
+    /DOB.*?\n.*?(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4})/i,
+    /(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{4})\s*(?:\n|$|\s)/
+  ]);
+  if (dobRaw) data.dateOfBirth = formatDateToISO(dobRaw);
 
-  // Try to find passport number
-  const passportMatch = ocrText.match(/(?:passport|PASSPORT|passport number|NO\.?)\s*[:\s]*([A-Z0-9]{6,9})/i);
-  if (passportMatch) data.passportNumber = passportMatch[1].trim();
+  // ---- SEX / GENDER ----
+  const sexRaw = extractField(normalized, [
+    /(?:sex|gender)\s*[:;#]\s*([MF])\b/i,
+    /(?:sex|gender)\s*[:;#]\s*(Male|Female)\b/i,
+    /\bSex\s*[:;#]?\s*\n?\s*([MF])\b/i
+  ]);
+  if (sexRaw) {
+    const s = sexRaw.toUpperCase();
+    data.sex = s === 'M' ? 'Male' : s === 'F' ? 'Female' : s;
+  }
 
-  // Try to find issuing country
-  const issuingMatch = ocrText.match(/(?:issuing country|ISSUING|COUNTRY)\s*[:\s]*([A-Z]+)/i);
-  if (issuingMatch) data.issuingCountry = issuingMatch[1].trim();
+  // ---- PASSPORT NUMBER ----
+  data.passportNumber = extractField(normalized, [
+    /(?:passport no|passport number|passport #|doc no|document number|pp no)\s*[:;#]\s*([A-Z]{1,2}\d{6,9})/i,
+    /(?:passport no|passport number|passport #|doc no|document number|pp no)\s*[:;#]\s*([A-Z0-9]{6,12})/i,
+    /\b(ET\d{6,9})\b/i,
+    /\b(EP\d{6,9})\b/i,
+    /\b(P\d{6,9})\b/i
+  ]);
 
-  // Try to find issue date
-  const issueMatch = ocrText.match(/(?:date of issue|ISSUED|ISSUE DATE)\s*[:\s]*(\d{1,4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,4})/i);
-  if (issueMatch) data.dateOfIssue = formatDateToISO(issueMatch[1]);
+  // ---- EXPIRY DATE ----
+  const expiryRaw = extractField(normalized, [
+    /(?:date of expiry|expiry date|expires|valid until|valid thru)\s*[:;#]\s*(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4})/i,
+    /(?:date of expiry|expiry date|expires|valid until|valid thru)\s*[:;#]\s*(\d{4}[\/\.\-]\d{1,2}[\/\.\-]\d{1,2})/i,
+    /Expiry.*?\n.*?(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4})/i
+  ]);
+  if (expiryRaw) data.dateOfExpiry = formatDateToISO(expiryRaw);
 
-  // Try to find expiry date
-  const expiryMatch = ocrText.match(/(?:date of expiry|EXPIRY|EXPIRE|VALID UNTIL)\s*[:\s]*(\d{1,4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,4})/i);
-  if (expiryMatch) data.dateOfExpiry = formatDateToISO(expiryMatch[1]);
+  // ---- ISSUE DATE ----
+  const issueRaw = extractField(normalized, [
+    /(?:date of issue|issue date|issued|issued on)\s*[:;#]\s*(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4})/i,
+    /(?:date of issue|issue date|issued|issued on)\s*[:;#]\s*(\d{4}[\/\.\-]\d{1,2}[\/\.\-]\d{1,2})/i
+  ]);
+  if (issueRaw) data.dateOfIssue = formatDateToISO(issueRaw);
 
-  // Try to find place of birth
-  const placeMatch = ocrText.match(/(?:place of birth|BORN AT|BIRTH PLACE)\s*[:\s]*([A-Za-z\s]+?)(?=\n|$)/i);
-  if (placeMatch) data.placeOfBirth = placeMatch[1].trim();
+  // ---- PLACE OF BIRTH ----
+  data.placeOfBirth = extractField(normalized, [
+    /(?:place of birth|birth place|pob)\s*[:;#]\s*([A-Z][A-Za-z\s]{2,30})/i
+  ]);
 
-  // Try to find father's name
-  const fatherMatch = ocrText.match(/(?:father|FATHER|père)\s*[:\s]*([A-Za-z\s]+?)(?=\n|$)/i);
-  if (fatherMatch) data.fatherName = fatherMatch[1].trim();
+  // ---- FATHER'S NAME ----
+  data.fatherName = extractField(normalized, [
+    /(?:father[\'s]* name|father|fathers name)\s*[:;#]\s*([A-Z][A-Za-z\s]{2,40})/i,
+    /(?:father[\'s]* name|father|fathers name)\s*(?:is|:)?\s*\n?\s*([A-Z][A-Za-z\s]{2,40})/i
+  ]);
 
-  // Try to find mother's name
-  const motherMatch = ocrText.match(/(?:mother|MOTHER|mère)\s*[:\s]*([A-Za-z\s]+?)(?=\n|$)/i);
-  if (motherMatch) data.motherName = motherMatch[1].trim();
+  // ---- MOTHER'S NAME ----
+  data.motherName = extractField(normalized, [
+    /(?:mother[\'s]* name|mother|mothers name)\s*[:;#]\s*([A-Z][A-Za-z\s]{2,40})/i,
+    /(?:mother[\'s]* name|mother|mothers name)\s*(?:is|:)?\s*\n?\s*([A-Z][A-Za-z\s]{2,40})/i
+  ]);
+
+  // ---- Fallback: Try MRZ format parsing ----
+  if (!data.passportNumber || !data.surname || !data.givenNames) {
+    parseMRZ(normalized, data);
+  }
 
   return data;
 }
 
 /**
+ * Parse Machine Readable Zone (MRZ) from passport
+ * MRZ Line 1: P<ETHASSEFA<<ABEBE<<<<<<<<<<<<<<<<<<<<<<<<<<
+ * MRZ Line 2: ET12345678ETH9005154M3005315<<<<<<<<<<<<<<04
+ */
+function parseMRZ(text: string, data: PassportData): void {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 20);
+
+  for (const line of lines) {
+    // MRZ Line 1 pattern: P< then country code, then surname << given names
+    if (line.startsWith('P<') || line.startsWith('P<')) {
+      const mrz = line.replace(/</g, ' ').trim();
+      const parts = mrz.split(/\s+/).filter(p => p.length > 1);
+      if (parts.length >= 3) {
+        if (!data.surname && parts[1]) data.surname = parts[1];
+        if (!data.givenNames && parts[2]) data.givenNames = parts.slice(2).join(' ');
+      }
+      continue;
+    }
+
+    // MRZ Line 2 pattern: passport number + country + DOB + sex + expiry
+    const mrzLine2Match = line.match(/^([A-Z0-9]{9})(\d)([A-Z]{3})(\d{6})(\d)([MF])(\d{6})/);
+    if (mrzLine2Match) {
+      if (!data.passportNumber) data.passportNumber = mrzLine2Match[1];
+      if (!data.nationality) data.nationality = mrzLine2Match[3];
+      if (!data.dateOfBirth) {
+        const dob = mrzLine2Match[4];
+        // MRZ format is YYMMDD
+        const yy = dob.substring(0, 2);
+        const mm = dob.substring(2, 4);
+        const dd = dob.substring(4, 6);
+        const fullYear = (parseInt(yy) > 30 ? '19' : '20') + yy;
+        data.dateOfBirth = `${fullYear}-${mm}-${dd}`;
+      }
+      if (!data.sex) {
+        data.sex = mrzLine2Match[6] === 'M' ? 'Male' : 'Female';
+      }
+      if (!data.dateOfExpiry) {
+        const exp = mrzLine2Match[7];
+        const yy = exp.substring(0, 2);
+        const mm = exp.substring(2, 4);
+        const dd = exp.substring(4, 6);
+        const fullYear = (parseInt(yy) > 30 ? '19' : '20') + yy;
+        data.dateOfExpiry = `${fullYear}-${mm}-${dd}`;
+      }
+    }
+  }
+}
+
+/**
  * Format date to ISO format (YYYY-MM-DD)
+ * Handles multiple input formats intelligently
  */
 export function formatDateToISO(dateStr: string): string {
-  // Remove common separators and normalize
-  const normalized = dateStr.replace(/[\/\-\.]/g, '/');
-  const parts = normalized.split('/');
+  if (!dateStr) return '';
+
+  // Already ISO?
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+
+  // Normalize separators
+  const normalized = dateStr.replace(/[\.\-]/g, '/');
+  const parts = normalized.split('/').filter(p => p.length > 0);
 
   if (parts.length !== 3) return '';
 
-  let year = parts[2];
-  let month = parts[1];
-  let day = parts[0];
+  let day: string, month: string, year: string;
 
-  // Handle 2-digit years
-  if (year.length === 2) {
-    const yearNum = parseInt(year);
-    year = (yearNum > 30 ? 1900 : 2000) + yearNum + '';
+  // Check if first part is 4 digits (YYYY/MM/DD)
+  if (parts[0].length === 4) {
+    year = parts[0];
+    month = parts[1].padStart(2, '0');
+    day = parts[2].padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
-  // Handle month/day swap (US format vs EU format)
+  // DD/MM/YYYY or MM/DD/YYYY
+  day = parts[0];
+  month = parts[1];
+  year = parts[2];
+
   const dayNum = parseInt(day);
   const monthNum = parseInt(month);
 
-  // If day > 12, it must be day (assume EU format)
-  if (dayNum > 12) {
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  // Validate ranges
+  if (monthNum > 12) {
+    // Must be day/month swapped
+    [day, month] = [month, day];
+  } else if (dayNum > 12 && dayNum <= 31) {
+    // day is clearly the day
+    // keep as is
+  }
+  // If both <= 12, assume DD/MM/YYYY (Ethiopian/EU format is more common)
+
+  // Handle 2-digit year
+  if (year.length === 2) {
+    const yearNum = parseInt(year);
+    year = (yearNum > 30 ? '19' : '20') + year;
   }
 
-  // If both could be valid, assume EU format (day/month/year)
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
@@ -111,8 +262,15 @@ export function formatDateToISO(dateStr: string): string {
  * Map passport data to form field names
  */
 export function mapPassportToFormFields(passportData: PassportData) {
+  // Clean up given names to extract first name
+  let firstName = '';
+  if (passportData.givenNames) {
+    const names = passportData.givenNames.split(/\s+/).filter(n => n.length > 0);
+    firstName = names[0] || '';
+  }
+
   return {
-    firstName: passportData.givenNames?.split(' ')[0] || '',
+    firstName: firstName,
     lastName: passportData.surname || '',
     dateOfBirth: passportData.dateOfBirth || '',
     gender: passportData.sex || '',
@@ -128,10 +286,8 @@ export function mapPassportToFormFields(passportData: PassportData) {
  * Extract text regions from passport image (for manual parsing)
  */
 export function extractPassportFields(image: HTMLImageElement) {
-  // This is a placeholder for advanced image processing
-  // In production, you'd use a library like OpenCV.js or TensorFlow.js
   return {
-    mrzZone: '', // Machine Readable Zone
-    photoZone: '', // Face detection would go here
+    mrzZone: '',
+    photoZone: '',
   };
 }

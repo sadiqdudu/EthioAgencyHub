@@ -19,7 +19,8 @@ import {
   Lock,
   CreditCard,
   AlertCircle,
-  BarChart3
+  BarChart3,
+  GraduationCap
 } from 'lucide-react';
 
 export const demoUsers = [
@@ -105,14 +106,15 @@ export const modules = [
     title: 'Agents', 
     href: '/agents', 
     icon: BriefcaseBusiness, 
-    summary: 'Agent onboarding, training, performance, commissions, and support.',
+    summary: 'Agent onboarding, contracts, CV pipeline, financials, in-country staff, training & support.',
     submenu: [
       { title: 'Overview', href: '/agents', icon: BriefcaseBusiness },
-      { title: 'Agent Details', href: '/agents/agent-detail', icon: Users },
-      { title: 'Performance', href: '/agents/performance', icon: BarChart3 },
-      { title: 'Onboarding', href: '/agents/onboarding', icon: CheckCircle2 },
-      { title: 'Training', href: '/agents/training', icon: FileText },
-      { title: 'Support', href: '/agents/support', icon: Bell }
+      { title: 'Agent Details', href: '/agents?tab=agent-details', icon: Users },
+      { title: 'Contracts', href: '/agents?tab=contracts', icon: FileText },
+      { title: 'CV Pipeline', href: '/agents?tab=cv-pipeline', icon: BarChart3 },
+      { title: 'Financials', href: '/agents?tab=financials', icon: Landmark },
+      { title: 'In-Country Staff', href: '/agents?tab=in-country', icon: UsersRound },
+      { title: 'Training & Support', href: '/agents?tab=training-support', icon: GraduationCap }
     ]
   },
   { 

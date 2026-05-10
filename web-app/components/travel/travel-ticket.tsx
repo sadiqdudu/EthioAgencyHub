@@ -1,17 +1,47 @@
 'use client';
 
-import { useState } from 'react';
-import { Ticket, Plane, MapPin, Clock, Search, Globe, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Ticket, Plane, MapPin, Clock, Search, Globe, User, RotateCcw } from 'lucide-react';
+
+interface Employee {
+  id: string;
+  name: string;
+  destination?: string;
+}
 
 export function TravelTicket() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(true);
   
-  const tickets = [
-    { id: 'TKT-001', employee: 'Mekdes Tesfaye', country: 'Saudi Arabia', city: 'Riyadh', date: '2026-05-08', airline: 'Saudi Arabia Airlines', status: 'issued', agencyWorker: 'Solomon K.', task: 'Handover physical ticket at Bole' },
-    { id: 'TKT-002', employee: 'Hana Bekele', country: 'UAE', city: 'Dubai', date: '2026-05-12', airline: 'Emirates', status: 'pending', agencyWorker: 'Aster M.', task: 'Confirm ticket with agency' },
-    { id: 'TKT-003', employee: 'Selamawit Alemu', country: 'Qatar', city: 'Doha', date: '2026-05-15', airline: 'Qatar Airways', status: 'issued', agencyWorker: 'Dawit T.', task: 'Verify spelling against Passport' },
-    { id: 'TKT-004', employee: 'Rahel Tadesse', country: 'Kuwait', city: 'Kuwait City', date: '2026-05-20', airline: 'Kuwait Airways', status: 'cancelled', agencyWorker: 'Unassigned', task: 'Re-book requested' },
-  ];
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const res = await fetch('/api/employees?limit=1000');
+        const data = await res.json();
+        if (data.success && data.data) {
+          setEmployees(data.data.map((emp: any) => ({ id: emp.id, name: emp.name, destination: emp.destination })));
+        }
+      } catch (error) {
+        console.error('Failed to fetch employees:', error);
+      } finally {
+        setLoadingEmployees(false);
+      }
+    };
+    fetchEmployees();
+  }, []);
+  
+  const tickets = employees.map((emp, idx) => ({
+    id: `TKT-${String(idx + 1).padStart(3, '0')}`,
+    employee: emp.name,
+    country: emp.destination || 'Pending',
+    city: emp.destination ? `${emp.destination} City` : 'TBD',
+    date: 'Pending',
+    airline: 'Not booked',
+    status: idx % 3 === 0 ? 'issued' : idx % 3 === 1 ? 'pending' : 'cancelled' as 'issued' | 'pending' | 'cancelled',
+    agencyWorker: 'Unassigned',
+    task: 'Awaiting ticket booking'
+  }));
 
   const filteredTickets = tickets.filter(t => 
     t.employee.toLowerCase().includes(searchQuery.toLowerCase()) || 

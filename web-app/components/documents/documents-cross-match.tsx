@@ -1,9 +1,23 @@
 'use client';
 
-import { useState } from 'react';
-import { CheckCircle2, AlertCircle, Eye, AlertTriangle, FileText, Plane, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CheckCircle2, AlertCircle, Eye, AlertTriangle, FileText, Plane, Search, User, RotateCcw } from 'lucide-react';
 
-const crossMatchResults = [
+interface Employee {
+  id: string;
+  name: string;
+}
+
+interface CrossMatchResult {
+  id: string;
+  employee: string;
+  status: 'verified' | 'critical' | 'discrepancy' | 'pending';
+  passportExpiry: string;
+  issues: string[];
+  lastChecked: string;
+}
+
+const crossMatchResults: CrossMatchResult[] = [
   { 
     id: 'MATCH-001', 
     employee: 'Mekdes Tesfaye', 
@@ -24,7 +38,7 @@ const crossMatchResults = [
     id: 'MATCH-003', 
     employee: 'Selamawit Alemu', 
     status: 'critical', 
-    passportExpiry: '2026-08-10', // Less than 6 months from now
+    passportExpiry: '2026-08-10', 
     issues: [
       'Passport expires in < 6 months (Bole Airport Risk)', 
       'Ticket Name Spelling Mismatch'
@@ -41,18 +55,30 @@ const crossMatchResults = [
     ], 
     lastChecked: '2026-05-03' 
   },
-  { 
-    id: 'MATCH-005', 
-    employee: 'Addis Worker', 
-    status: 'pending', 
-    passportExpiry: 'Pending', 
-    issues: [], 
-    lastChecked: 'Pending' 
-  },
 ];
 
 export function DocumentsCrossMatch() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(true);
+  const [selectedEmployee, setSelectedEmployee] = useState('');
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const res = await fetch('/api/employees?limit=1000');
+        const data = await res.json();
+        if (data.success && data.data) {
+          setEmployees(data.data.map((emp: any) => ({ id: emp.id, name: emp.name })));
+        }
+      } catch (error) {
+        console.error('Failed to fetch employees:', error);
+      } finally {
+        setLoadingEmployees(false);
+      }
+    };
+    fetchEmployees();
+  }, []);
   
   const filteredResults = crossMatchResults.filter(r => 
     r.employee.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -84,10 +110,31 @@ export function DocumentsCrossMatch() {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3">
-        <button className="flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700 shadow-sm transition-colors">
-          <Plane className="h-4 w-4" /> Run Pre-Departure Cross-Match
-        </button>
+      <div className="flex flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <select
+              value={selectedEmployee}
+              onChange={(e) => setSelectedEmployee(e.target.value)}
+              className="rounded-lg border border-slate-300 py-2.5 pl-9 pr-8 text-sm font-medium text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white cursor-pointer"
+              disabled={loadingEmployees}
+            >
+              <option value="">{loadingEmployees ? 'Loading...' : 'All Employees'}</option>
+              {employees.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
+            </select>
+          </div>
+          <button className="flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700 shadow-sm transition-colors">
+            <Plane className="h-4 w-4" /> Run Cross-Match
+          </button>
+          <button 
+            onClick={() => { setEmployees([]); setLoadingEmployees(true); fetch('/api/employees?limit=1000').then(r => r.json()).then(d => { if(d.success?.data) setEmployees(d.data.map((e:any) => ({id: e.id, name: e.name}))); setLoadingEmployees(false); })}}
+            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 shadow-sm transition-colors"
+            title="Refresh employee list"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+        </div>
         <button className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm transition-colors">
           <AlertTriangle className="h-4 w-4 text-orange-500" /> View Discrepancy Log
         </button>
