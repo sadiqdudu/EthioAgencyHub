@@ -60,7 +60,7 @@ export const modules = [
     submenu: [
       { title: 'Overview', href: '/documents', icon: FileCheck2 },
       { title: 'Upload', href: '/documents/upload', icon: FileText },
-      { title: 'Visa Documents', href: '/documents/visa', icon: FileText },
+      { title: 'Visa Management', href: '/documents/visa', icon: FileText },
       { title: 'MOLS Processing', href: '/documents/mols', icon: Landmark },
       { title: 'Missing Reports', href: '/documents/missing-report', icon: AlertCircle },
       { title: 'Cross-Match', href: '/documents/cross-match', icon: CheckCircle2 }
@@ -73,7 +73,6 @@ export const modules = [
     summary: 'Command center, schedule, ticket booking, departures, prep checklist, arrival.',
     submenu: [
       { title: 'Command Center', href: '/travel', icon: Plane },
-      { title: 'Visa', href: '/travel?tab=visa', icon: FileText },
       { title: 'Schedule', href: '/travel?tab=schedule', icon: Clock },
       { title: 'Tickets', href: '/travel?tab=tickets', icon: FileText },
       { title: "Today's Departures", href: '/travel?tab=departure', icon: TrendingUp },

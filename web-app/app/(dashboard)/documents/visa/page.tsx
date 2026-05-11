@@ -1,11 +1,7 @@
-﻿import { VisaTimeline } from '@/components/documents/visa-timeline';
-import { DocumentsVisa } from '@/components/documents/documents-visa';
+﻿'use client';
 
-export default function Page() {
-  return (
-    <div className="space-y-6">
-      <DocumentsVisa />
-      <VisaTimeline />
-    </div>
-  );
+import { DocumentsVisaModule } from '@/components/documents/documents-visa-module';
+
+export default function VisaDocumentsPage() {
+  return <DocumentsVisaModule />;
 }
