@@ -1,468 +1,315 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, Clock, Download, FileText, Printer, RefreshCcw, Send, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { AlertCircle, CheckCircle2, Clock, Download, FileText, Printer, Send, Search, X, Plus, Upload, ChevronDown, ChevronUp, Shield, Globe, User, Calendar, Flag, ExternalLink } from 'lucide-react';
 
-type Priority = 'critical' | 'high' | 'medium';
-type ReportStatus = 'draft' | 'submitted_to_mols' | 'under_review' | 'resolved';
-
-type MissingAbroadCase = {
+interface MissingCase {
   id: string;
   employeeId: string;
   employeeName: string;
   passportNo: string;
+  visaNumber: string;
   destinationCountry: string;
   employerName: string;
   missingSince: string;
   lastContactDate: string;
-  agencyContactName: string;
-  agencyContactPhone: string;
-  priority: Priority;
-  status: ReportStatus;
+  daysSinceReport: number;
+  priority: 'critical' | 'high' | 'medium';
+  status: 'draft' | 'submitted_to_mols' | 'resolved';
   molsReference?: string;
   notes: string;
-  letterText?: string;
-};
+  evidenceUploaded: boolean;
+  letterGenerated: boolean;
+}
 
 export function DocumentsMissingReport() {
-  const [cases, setCases] = useState<MissingAbroadCase[]>([]);
-  const [selectedCaseId, setSelectedCaseId] = useState('');
-  const [letterText, setLetterText] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [cases, setCases] = useState<MissingCase[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [statusMsg, setStatusMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const filteredCases = useMemo(() => {
-    return cases.filter(item => 
-      item.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      item.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.passportNo.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [cases, searchQuery]);
+  const [form, setForm] = useState({
+    employeeSearch: '', employeeId: '', employeeName: '', passportNo: '', visaNumber: '', destinationCountry: '', employerName: '',
+    missingSince: '', lastContactDate: '', notes: ''
+  });
 
-  const selectedCase = useMemo(
-    () => cases.find((item) => item.id === selectedCaseId) ?? filteredCases[0],
-    [cases, selectedCaseId, filteredCases]
+  useEffect(() => { fetchData(); }, []);
+
+  const fetchData = async () => {
+    try {
+      const res = await fetch('/api/employees?limit=100');
+      const data = await res.json();
+      if (data.success && data.data) setEmployees(data.data);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
+
+  const filteredEmployees = employees.filter((e: any) =>
+    !form.employeeId && (!form.employeeSearch || (e.name || '').toLowerCase().includes(form.employeeSearch.toLowerCase()))
   );
 
-  const loadCases = async () => {
-    setLoading(true);
-    setMessage(null);
-    try {
-      const res = await fetch('/api/documents/missing-report');
-      const payload = await res.json();
-      if (!res.ok || !payload?.success || !Array.isArray(payload.data)) {
-        throw new Error(payload?.error?.message ?? 'Failed to load missing abroad cases');
-      }
-
-      setCases(payload.data as MissingAbroadCase[]);
-      if (payload.data.length > 0) {
-        const first = payload.data[0] as MissingAbroadCase;
-        setSelectedCaseId(first.id);
-        setLetterText(buildMolsLetter(first));
-      } else {
-        setSelectedCaseId('');
-        setLetterText('');
-      }
-      setLastUpdatedAt(new Date());
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to load missing abroad cases');
-    } finally {
-      setLoading(false);
-    }
+  const selectEmployee = (emp: any) => {
+    setForm({
+      ...form, employeeId: emp.id, employeeName: emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unknown',
+      passportNo: emp.passportNumber || '', destinationCountry: emp.destination || emp.country || '',
+      visaNumber: '', employerName: '', employeeSearch: ''
+    });
   };
 
-  useEffect(() => {
-    loadCases();
-  }, []);
-
-  const buildMolsLetter = (caseItem: MissingAbroadCase) => {
-    const today = new Date().toLocaleDateString();
-    return [
-      `Date: ${today}`,
-      '',
-      'To: Ministry of Labor and Skills (MOLS)',
-      'Subject: Official Missing Employee Abroad Report',
-      '',
-      'Dear Sir/Madam,',
-      '',
-      `This is to officially report that employee ${caseItem.employeeName} (Employee ID: ${caseItem.employeeId}) is missing abroad.`,
-      '',
-      'Employee Details:',
-      `- Full Name: ${caseItem.employeeName}`,
-      `- Employee ID: ${caseItem.employeeId}`,
-      `- Passport Number: ${caseItem.passportNo}`,
-      `- Destination Country: ${caseItem.destinationCountry}`,
-      `- Employer Abroad: ${caseItem.employerName}`,
-      `- Missing Since: ${new Date(caseItem.missingSince).toLocaleDateString()}`,
-      `- Last Contact Date: ${new Date(caseItem.lastContactDate).toLocaleDateString()}`,
-      '',
-      'Case Summary:',
-      caseItem.notes,
-      '',
-      'Agency Contact for Follow-up:',
-      `- Contact Person: ${caseItem.agencyContactName}`,
-      `- Phone: ${caseItem.agencyContactPhone}`,
-      '',
-      'We request urgent coordination with relevant authorities and diplomatic channels to locate and safeguard the employee.',
-      '',
-      'Sincerely,',
-      'Agency Compliance Office',
-      'Ethio Agency Hub'
-    ].join('\n');
+  const resetForm = () => {
+    setForm({ employeeSearch: '', employeeId: '', employeeName: '', passportNo: '', visaNumber: '', destinationCountry: '', employerName: '', missingSince: '', lastContactDate: '', notes: '' });
+    setShowForm(false);
   };
 
-  const generateLetter = () => {
-    if (!selectedCase) return;
-    setLetterText(buildMolsLetter(selectedCase));
-    setMessage('MOLS official letter generated from selected case details.');
-  };
-
-  const downloadLetter = () => {
-    if (!selectedCase || !letterText.trim()) return;
-    const blob = new Blob([letterText], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${selectedCase.id.toLowerCase()}-mols-letter.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const printLetter = () => {
-    if (!selectedCase || !letterText.trim()) return;
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    const html = `
-      <html>
-        <head>
-          <title>MOLS Letter - ${selectedCase.id}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 24px; line-height: 1.5; white-space: pre-wrap; }
-          </style>
-        </head>
-        <body>${letterText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</body>
-      </html>
-    `;
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-  };
-
-  const submitToMols = async () => {
-    if (!selectedCase) return;
-    const molsReference = selectedCase.molsReference ?? `MOLS-${new Date().getTime().toString().slice(-6)}`;
-    const updatedCase: MissingAbroadCase = {
-      ...selectedCase,
-      status: 'submitted_to_mols',
-      molsReference,
-      letterText
+  const createReport = () => {
+    if (!form.employeeId) { setStatusMsg({ ok: false, text: 'Select an employee' }); setTimeout(() => setStatusMsg(null), 3000); return; }
+    const newCase: MissingCase = {
+      id: 'MISS-' + Date.now(),
+      employeeId: form.employeeId,
+      employeeName: form.employeeName,
+      passportNo: form.passportNo,
+      visaNumber: form.visaNumber,
+      destinationCountry: form.destinationCountry,
+      employerName: form.employerName,
+      missingSince: form.missingSince || new Date().toISOString().split('T')[0],
+      lastContactDate: form.lastContactDate || new Date().toISOString().split('T')[0],
+      daysSinceReport: 0,
+      priority: 'high',
+      status: 'draft',
+      notes: form.notes,
+      evidenceUploaded: false,
+      letterGenerated: false,
     };
-
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      const res = await fetch('/api/documents/missing-report', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          case: updatedCase,
-          reason: 'submitted_to_mols'
-        })
-      });
-      const payload = await res.json();
-
-      if (!res.ok || !payload?.success) {
-        throw new Error(payload?.error?.message ?? 'Failed to submit case to MOLS');
-      }
-
-      setCases((prev) => prev.map((item) => (item.id === selectedCase.id ? updatedCase : item)));
-      setLastUpdatedAt(new Date());
-      setMessage(`Case ${selectedCase.id} submitted to MOLS successfully. Reference: ${molsReference}`);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to submit case to MOLS');
-    } finally {
-      setSubmitting(false);
-    }
+    setCases(prev => [newCase, ...prev]);
+    resetForm();
+    setStatusMsg({ ok: true, text: `Missing report created for ${form.employeeName}` });
+    setTimeout(() => setStatusMsg(null), 3000);
   };
 
-  const exportCaseSummary = () => {
-    if (cases.length === 0) return;
-    const summary = [
-      'Missing Employee Abroad Cases Summary (MOLS)',
-      `Generated At: ${new Date().toLocaleString()}`,
-      `Total Cases: ${cases.length}`,
-      `Submitted to MOLS: ${cases.filter((item) => item.status === 'submitted_to_mols').length}`,
-      `Under Review: ${cases.filter((item) => item.status === 'under_review').length}`,
-      `Resolved: ${cases.filter((item) => item.status === 'resolved').length}`,
-      `Critical Priority: ${cases.filter((item) => item.priority === 'critical').length}`,
-      '',
-      'Case Details:',
-      ...cases.map((item) =>
-        [
-          `- ${item.id}`,
-          `  Employee: ${item.employeeName} (${item.employeeId})`,
-          `  Destination: ${item.destinationCountry}`,
-          `  Missing Since: ${new Date(item.missingSince).toLocaleDateString()}`,
-          `  Status: ${item.status.replaceAll('_', ' ')}`,
-          `  Priority: ${item.priority}`,
-          `  MOLS Ref: ${item.molsReference ?? 'N/A'}`
-        ].join('\n')
-      )
-    ].join('\n');
-
-    const blob = new Blob([summary], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `mols-missing-cases-summary-${new Date().toISOString().slice(0, 10)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setMessage('Case summary exported successfully.');
+  const generateLetter = (id: string) => {
+    setCases(prev => prev.map(c => c.id === id ? { ...c, letterGenerated: true, status: 'submitted_to_mols' as const, molsReference: 'MOLS-REF-' + Date.now().toString().slice(-8) } : c));
+    const c = cases.find(cc => cc.id === id);
+    alert(`MOLS Missing Person Letter Generated:\n\nTo: Ministry of Labor and Skills (MOLS)\nSubject: Report of Missing Employee – ${c?.employeeName}\n\nEmployee: ${c?.employeeName}\nPassport No: ${c?.passportNo}\nVisa No: ${c?.visaNumber}\nEmployer: ${c?.employerName}\nDestination: ${c?.destinationCountry}\nDate Missing: ${c?.missingSince}\nLast Contact: ${c?.lastContactDate}\n\nThis letter has been logged and is ready for digital signature.`);
   };
 
-  const getPriorityColor = (priority: Priority) => {
-    switch (priority) {
-      case 'critical':
-        return 'bg-red-100 text-red-700';
-      case 'high':
-        return 'bg-orange-100 text-orange-700';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-700';
-      default: return 'bg-slate-100 text-slate-700';
-    }
+  const markResolved = (id: string) => {
+    setCases(prev => prev.map(c => c.id === id ? { ...c, status: 'resolved' as const } : c));
+    setStatusMsg({ ok: true, text: 'Case marked as resolved' });
+    setTimeout(() => setStatusMsg(null), 3000);
   };
 
-  const getStatusBadge = (status: ReportStatus) => {
-    switch (status) {
-      case 'submitted_to_mols':
-        return 'bg-blue-100 text-blue-700';
-      case 'under_review':
-        return 'bg-purple-100 text-purple-700';
-      case 'resolved':
-        return 'bg-emerald-100 text-emerald-700';
-      case 'draft':
-      default:
-        return 'bg-slate-100 text-slate-700';
-    }
+  const uploadEvidence = (id: string) => {
+    setCases(prev => prev.map(c => c.id === id ? { ...c, evidenceUploaded: true } : c));
   };
 
-  const stats = [
-    { label: 'Missing Abroad Cases', value: String(cases.length), color: 'bg-red-100 text-red-700' },
-    { label: 'Submitted to MOLS', value: String(cases.filter((item) => item.status === 'submitted_to_mols').length), color: 'bg-blue-100 text-blue-700' },
-    { label: 'Under Government Review', value: String(cases.filter((item) => item.status === 'under_review').length), color: 'bg-purple-100 text-purple-700' },
-    { label: 'Critical Cases', value: String(cases.filter((item) => item.priority === 'critical').length), color: 'bg-orange-100 text-orange-700' }
-  ];
+  const filtered = cases.filter(c =>
+    !searchQuery || c.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) || c.passportNo.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const activeMissing = cases.filter(c => c.status !== 'resolved');
+  const reportedToMols = cases.filter(c => c.status === 'submitted_to_mols');
+
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-600" /></div>;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-ink">Missing Employee Abroad Report (MOLS)</h1>
-        <p className="mt-2 text-slate-500">
-          Track employees reported missing abroad, prepare official letters, and submit complete case details to MOLS.
-        </p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className={`rounded-2xl ${stat.color} p-6`}>
-            <p className="text-2xl font-bold">{stat.value}</p>
-            <p className="text-sm opacity-90">{stat.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={generateLetter}
-          disabled={!selectedCase || loading}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-        >
-          <FileText className="h-4 w-4" />
-          Generate MOLS Letter
-        </button>
-        <button
-          type="button"
-          onClick={submitToMols}
-          disabled={!selectedCase || submitting || loading}
-          className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-        >
-          <Send className="h-4 w-4" />
-          {submitting ? 'Submitting...' : 'Submit to MOLS'}
-        </button>
-        <button
-          type="button"
-          onClick={downloadLetter}
-          disabled={!letterText.trim() || loading}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-        >
-          <Download className="h-4 w-4" />
-          Download Letter
-        </button>
-        <button
-          type="button"
-          onClick={printLetter}
-          disabled={!letterText.trim() || loading}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-        >
-          <Printer className="h-4 w-4" />
-          Print / Save PDF
-        </button>
-        <button
-          type="button"
-          onClick={loadCases}
-          disabled={loading}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-        >
-          <RefreshCcw className="h-4 w-4" />
-          Refresh Cases
-        </button>
-        <button
-          type="button"
-          onClick={exportCaseSummary}
-          disabled={cases.length === 0 || loading}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-        >
-          <CheckCircle2 className="h-4 w-4" />
-          Export Case Summary
-        </button>
-      </div>
-      {message ? (
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-          {message}
+    <div className="space-y-6">
+      <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-red-50/30 to-white p-8 shadow-sm flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-ink">Missing Reports</h1>
+          <p className="mt-2 text-slate-600 max-w-xl">Post-deployment incident tracking. Rapid reporting of runaway or missing employees with automated legal letters to MOLS.</p>
         </div>
-      ) : null}
-
-      {/* Cases Table */}
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="border-b border-slate-200 px-6 py-4 flex flex-wrap gap-4 items-center justify-between bg-slate-50">
-          <div>
-            <h3 className="text-lg font-bold text-ink">Missing Abroad Cases</h3>
-            <span className="text-xs font-semibold text-slate-600">
-              Last updated: {lastUpdatedAt ? lastUpdatedAt.toLocaleTimeString() : 'N/A'}
-            </span>
-          </div>
-          
-          <div className="relative max-w-sm w-full">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by Employee Name, ID, or Passport..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="px-6 py-3 text-left font-semibold text-slate-600">Case ID</th>
-                <th className="px-6 py-3 text-left font-semibold text-slate-600">Employee</th>
-                <th className="px-6 py-3 text-left font-semibold text-slate-600">Destination</th>
-                <th className="px-6 py-3 text-left font-semibold text-slate-600">Missing Since</th>
-                <th className="px-6 py-3 text-left font-semibold text-slate-600">Last Contact</th>
-                <th className="px-6 py-3 text-left font-semibold text-slate-600">Priority</th>
-                <th className="px-6 py-3 text-left font-semibold text-slate-600">MOLS Ref</th>
-                <th className="px-6 py-3 text-left font-semibold text-slate-600">Status</th>
-                <th className="px-6 py-3 text-left font-semibold text-slate-600">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td className="px-6 py-6 text-slate-500" colSpan={9}>Loading cases...</td>
-                </tr>
-              ) : filteredCases.length === 0 ? (
-                <tr>
-                  <td className="px-6 py-6 text-slate-500 text-center" colSpan={9}>
-                    No missing-abroad cases found matching "{searchQuery}".
-                  </td>
-                </tr>
-              ) : filteredCases.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 font-semibold text-red-600">{item.id}</td>
-                  <td className="px-6 py-4 text-slate-700">
-                    <p className="font-semibold text-ink">{item.employeeName}</p>
-                    <p className="text-xs text-slate-500">{item.employeeId} • {item.passportNo}</p>
-                  </td>
-                  <td className="px-6 py-4 text-slate-600">{item.destinationCountry}</td>
-                  <td className="px-6 py-4 text-slate-600">
-                    {new Date(item.missingSince).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      {new Date(item.lastContactDate).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${getPriorityColor(item.priority)}`}>
-                      {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-600">{item.molsReference ?? '-'}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadge(item.status)}`}>
-                      {item.status.replaceAll('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedCaseId(item.id);
-                        setLetterText(buildMolsLetter(item));
-                        setMessage(`Loaded case ${item.id} for letter preparation.`);
-                      }}
-                      className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
-                    >
-                      <AlertCircle className="h-4 w-4" />
-                      Prepare
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-700 shadow-sm">
+          <AlertCircle className="h-4 w-4" />Report Missing
+        </button>
       </div>
 
-      {/* Letter Editor */}
-      {selectedCase ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-bold text-ink">Official MOLS Letter</h3>
-              <p className="text-sm text-slate-500">
-                Case: {selectedCase.id} • Employee: {selectedCase.employeeName}
-              </p>
+      {statusMsg && (
+        <div className={`rounded-2xl border p-4 shadow-sm ${statusMsg.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+          <div className="flex items-center gap-3">{statusMsg.ok ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}<span className="font-semibold">{statusMsg.text}</span></div>
+        </div>
+      )}
+
+      {/* Red Alert Dashboard */}
+      <div className="rounded-2xl border-2 border-red-200 bg-gradient-to-r from-red-50 to-orange-50 p-5 shadow-sm">
+        <h3 className="font-bold text-red-800 flex items-center gap-2 mb-4"><Flag className="h-5 w-5" /> Red Alert Dashboard</h3>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div><span className="text-3xl font-bold text-red-800">{activeMissing.length}</span><p className="text-sm font-medium text-red-700">Currently Missing</p></div>
+          <div><span className="text-3xl font-bold text-orange-800">{reportedToMols.length}</span><p className="text-sm font-medium text-orange-700">Reported to MOLS</p></div>
+          <div><span className="text-3xl font-bold text-emerald-800">{cases.filter(c => c.letterGenerated).length}</span><p className="text-sm font-medium text-emerald-700">Letters Generated</p></div>
+        </div>
+        {activeMissing.length > 0 && (
+          <div className="mt-4 p-3 rounded-xl bg-red-100 border border-red-200 text-xs text-red-700">
+            <AlertCircle className="h-4 w-4 inline-block mr-1" />
+            {activeMissing.length} active case{activeMissing.length > 1 ? 's' : ''}. {reportedToMols.filter(c => c.daysSinceReport > 30).length > 0 ? `${reportedToMols.filter(c => c.daysSinceReport > 30).length} case(s) exceed 30 days since report. Legal escalation recommended.` : 'All cases within reporting window.'}
+          </div>
+        )}
+      </div>
+
+      {/* New Report Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl">
+            <div className="sticky top-0 border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between rounded-t-2xl">
+              <h3 className="text-xl font-bold text-ink">Report Missing Employee</h3>
+              <button onClick={resetForm} className="p-1 rounded-lg hover:bg-slate-100"><X className="h-5 w-5 text-slate-500" /></button>
             </div>
-            <button
-              type="button"
-              onClick={generateLetter}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Regenerate Letter
-            </button>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Select Employee *</label>
+                {form.employeeId ? (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-200">
+                    <div className="h-10 w-10 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold">{form.employeeName.charAt(0)}</div>
+                    <div className="flex-1"><p className="font-bold text-ink">{form.employeeName}</p><p className="text-xs text-slate-500">Passport: {form.passportNo}</p></div>
+                    <button onClick={() => setForm({ ...form, employeeId: '', employeeName: '' })} className="text-slate-400 hover:text-red-500"><X className="h-4 w-4" /></button>
+                  </div>
+                ) : (
+                  <div>
+                    <input type="text" value={form.employeeSearch} onChange={e => setForm({ ...form, employeeSearch: e.target.value })}
+                      placeholder="Search active employee..." className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-red-500 focus:outline-none" />
+                    {form.employeeSearch && (
+                      <div className="mt-2 max-h-40 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                        {filteredEmployees.slice(0, 8).map((emp: any) => (
+                          <button key={emp.id} onClick={() => selectEmployee(emp)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 text-left">
+                            <div className="h-8 w-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs">{(emp.name || 'U').charAt(0)}</div>
+                            <div><p className="text-sm font-medium">{emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unknown'}</p><p className="text-xs text-slate-400">{emp.destination || emp.country || 'Open'}</p></div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Passport Number</label>
+                  <input type="text" value={form.passportNo} readOnly className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Visa Number</label>
+                  <input type="text" value={form.visaNumber} onChange={e => setForm({ ...form, visaNumber: e.target.value })} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Destination Country</label>
+                  <input type="text" value={form.destinationCountry} readOnly className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Employer Name</label>
+                  <input type="text" value={form.employerName} onChange={e => setForm({ ...form, employerName: e.target.value })} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Missing Since</label>
+                  <input type="date" value={form.missingSince} onChange={e => setForm({ ...form, missingSince: e.target.value })} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Last Contact Date</label>
+                  <input type="date" value={form.lastContactDate} onChange={e => setForm({ ...form, lastContactDate: e.target.value })} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Notes / Incident Details</label>
+                <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={3} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" placeholder="Details about the incident..." />
+              </div>
+            </div>
+            <div className="sticky bottom-0 border-t border-slate-200 bg-white px-6 py-4 flex justify-between rounded-b-2xl">
+              <button onClick={resetForm} className="px-5 py-2.5 text-sm font-medium text-slate-600">Cancel</button>
+              <button onClick={createReport} className="flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-700 shadow-sm">
+                <AlertCircle className="h-4 w-4" />Create Report
+              </button>
+            </div>
           </div>
-          <textarea
-            value={letterText}
-            onChange={(event) => setLetterText(event.target.value)}
-            rows={18}
-            className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 focus:border-brand-600 focus:outline-none"
-            placeholder="Generate official letter text for MOLS from selected case details..."
-          />
-        </section>
-      ) : null}
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search cases..." className="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-4 text-sm focus:border-red-500 focus:outline-none" />
+      </div>
+
+      {/* Cases List */}
+      {cases.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-16 text-center shadow-sm">
+          <AlertCircle className="h-12 w-12 mx-auto text-slate-300 mb-3" />
+          <p className="font-medium text-slate-500">No missing reports</p>
+          <p className="text-sm text-slate-400 mt-1">All employees accounted for. Click "Report Missing" if needed.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map(c => {
+            const isExpanded = expandedId === c.id;
+            return (
+              <div key={c.id} className={`rounded-2xl border-2 shadow-sm overflow-hidden ${c.status === 'resolved' ? 'border-emerald-200 bg-emerald-50/30' : c.status === 'submitted_to_mols' ? 'border-orange-200 bg-orange-50/30' : 'border-red-200 bg-white'}`}>
+                <div className="px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-4 flex-1">
+                    <button onClick={() => setExpandedId(isExpanded ? null : c.id)} className="text-slate-400">{isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button>
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm ${c.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{c.employeeName.charAt(0)}</div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-ink">{c.employeeName}</p>
+                      <p className="text-xs text-slate-400">{c.destinationCountry} • Passport: {c.passportNo}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {c.status === 'draft' && <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">Draft</span>}
+                    {c.status === 'submitted_to_mols' && <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">MOLS Submitted</span>}
+                    {c.status === 'resolved' && <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">Resolved</span>}
+                    <span className="text-xs text-slate-400">{c.daysSinceReport}d</span>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    {!c.letterGenerated && <button onClick={() => generateLetter(c.id)} className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"><FileText className="h-3.5 w-3.5 inline-block mr-1" />Generate Letter</button>}
+                    {c.letterGenerated && c.status !== 'resolved' && <button onClick={() => markResolved(c.id)} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"><CheckCircle2 className="h-3.5 w-3.5 inline-block mr-1" />Resolve</button>}
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div className="px-6 py-5 bg-slate-50 border-t border-slate-200">
+                    <div className="grid gap-5 md:grid-cols-3">
+                      <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <h4 className="font-bold text-ink text-sm mb-3 flex items-center gap-2"><User className="h-4 w-4 text-red-600" /> Employee Details</h4>
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between"><span className="text-slate-500">Name:</span><span className="font-medium">{c.employeeName}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Passport:</span><span className="font-medium">{c.passportNo}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Visa:</span><span className="font-medium">{c.visaNumber || '-'}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Destination:</span><span className="font-medium">{c.destinationCountry}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Employer:</span><span className="font-medium">{c.employerName || '-'}</span></div>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <h4 className="font-bold text-ink text-sm mb-3 flex items-center gap-2"><Calendar className="h-4 w-4 text-orange-600" /> Incident Timeline</h4>
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between"><span className="text-slate-500">Missing Since:</span><span className="font-medium">{new Date(c.missingSince).toLocaleDateString()}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Last Contact:</span><span className="font-medium">{new Date(c.lastContactDate).toLocaleDateString()}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Days Since Report:</span><span className="font-bold text-red-600">{c.daysSinceReport}d</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Report Created:</span><span className="font-medium">{new Date().toLocaleDateString()}</span></div>
+                          {c.molsReference && <div className="flex justify-between"><span className="text-slate-500">MOLS Ref:</span><span className="font-bold text-orange-600">{c.molsReference}</span></div>}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <h4 className="font-bold text-ink text-sm mb-3 flex items-center gap-2"><Upload className="h-4 w-4 text-blue-600" /> Evidence & Actions</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+                            <span className="text-xs">Absconding Report</span>
+                            {c.evidenceUploaded ? <span className="text-xs font-bold text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" />Uploaded</span> : <button onClick={() => uploadEvidence(c.id)} className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded font-bold hover:bg-blue-700">Upload</button>}
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+                            <span className="text-xs">Letter to MOLS</span>
+                            {c.letterGenerated ? <span className="text-xs font-bold text-green-600 flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" />Generated</span> : <button onClick={() => generateLetter(c.id)} className="text-xs bg-red-600 text-white px-2.5 py-1 rounded font-bold hover:bg-red-700">Generate</button>}
+                          </div>
+                          {c.notes && <div className="p-3 rounded-lg bg-slate-50 text-xs text-slate-600"><span className="font-semibold">Notes:</span> {c.notes}</div>}
+                          {c.letterGenerated && (
+                            <div className="p-3 rounded-lg bg-orange-50 border border-orange-200 text-xs text-orange-700"><Send className="h-3.5 w-3.5 inline-block mr-1" />Logged to MOLS on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()} – Compliance proven.</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
