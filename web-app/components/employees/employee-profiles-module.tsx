@@ -8,12 +8,21 @@ interface Employee {
   id: string;
   firstName?: string;
   lastName?: string;
-  name: string;
+  name?: string;
   email?: string;
+  contactPhone?: string;
   role?: string;
+  jobRole?: string;
   destination?: string;
+  country?: string;
   status: string;
   createdAt: string;
+  education?: string;
+  experience?: string;
+  languages?: string[];
+  passportNumber?: string;
+  dateOfBirth?: string;
+  region?: string;
 }
 
 export function EmployeeProfilesComponent() {
@@ -285,7 +294,7 @@ export function EmployeeProfilesComponent() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-xs">
-                          {emp.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                          {(emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim()).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                         </div>
                         <div>
                           <p className="font-bold text-ink">{emp.name}</p>
@@ -341,11 +350,11 @@ export function EmployeeProfilesComponent() {
             <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-6 py-4">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-lg">
-                  {selectedEmployee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  {(selectedEmployee.name || `${selectedEmployee.firstName || ''} ${selectedEmployee.lastName || ''}`.trim()).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-ink">{selectedEmployee.name}</h3>
-                  <p className="text-sm text-slate-500">{selectedEmployee.role || 'Employee'} • {selectedEmployee.destination || 'Open'}</p>
+                  <h3 className="text-xl font-bold text-ink">{selectedEmployee.name || `${selectedEmployee.firstName || ''} ${selectedEmployee.lastName || ''}`.trim()}</h3>
+                  <p className="text-sm text-slate-500">{selectedEmployee.role || selectedEmployee.jobRole || 'Employee'} • {selectedEmployee.destination || selectedEmployee.country || 'Open'}</p>
                 </div>
               </div>
               <button onClick={() => setSelectedEmployee(null)} className="rounded-full p-2 hover:bg-slate-200">

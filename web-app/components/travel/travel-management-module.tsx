@@ -197,13 +197,13 @@ export function TravelManagementModule() {
         setBookings(mappedBookings);
       }
 
-      if (employeesData.success && employeesData.data && employeesData.data.length > 0 && employees.length === 0) {
-        const empMap: TravelEmployee[] = employeesData.data.slice(0, 5).map((e: any, idx: number) => ({
-          id: `EMP-${idx}`,
+      if (employeesData.success && employeesData.data && employeesData.data.length > 0) {
+        const regEmployees: TravelEmployee[] = employeesData.data.map((e: any) => ({
+          id: e.id,
           employeeId: e.id,
-          name: e.firstName + ' ' + (e.lastName || ''),
-          phone: e.phone || '',
-          destination: e.country || 'Saudi Arabia',
+          name: `${e.firstName || ''} ${e.lastName || ''}`.trim() || e.name || 'Unknown',
+          phone: e.contactPhone || e.phone || '',
+          destination: e.destination || e.country || 'Open',
           flightNumber: '',
           departureDate: '',
           departureTime: '',
@@ -211,10 +211,12 @@ export function TravelManagementModule() {
           terminal: 'T2',
           ticketNumber: '',
           status: 'pending' as const,
-          documents: { passport: !!e.passport, visa: !!e.visa, yellowCard: false, ticket: false, orientationComplete: false },
+          documents: { passport: !!e.passportNumber, visa: false, yellowCard: false, ticket: false, orientationComplete: false },
           transitStatus: { t72hours: 'pending' as const, t48hours: 'pending' as const, t24hours: 'pending' as const }
         }));
-        if (employees.length === 0) setEmployees(empMap);
+        if (employees.length === 0) {
+          setEmployees(regEmployees);
+        }
       }
     } catch (error) {
       console.error('Failed to load travel data:', error);
