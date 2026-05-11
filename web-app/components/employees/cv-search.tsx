@@ -6,13 +6,25 @@ import { EmployeeCardGrid } from './employee-card';
 
 interface Employee {
   id: string;
-  name: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
   role?: string;
+  jobRole?: string;
   destination?: string;
+  country?: string;
   status: string;
   selectedByAgent?: string | null;
   selectedAt?: string | null;
   createdAt: string;
+  contactPhone?: string;
+  email?: string;
+  region?: string;
+  nationality?: string;
+  education?: string;
+  experience?: string;
+  languages?: string[];
+  passportNumber?: string;
   _count?: { documents: number; travels: number };
 }
 
@@ -40,7 +52,12 @@ export function CvSearch({ agentId, viewOnly = false, onSelect }: CvSearchProps)
       const res = await fetch(`/api/employees?${params.toString()}`);
       const data = await res.json();
       
-      let employees = data.success ? data.data || [] : [];
+      let employees: Employee[] = data.success ? (data.data || []).map((e: any) => ({
+        ...e,
+        name: e.name || `${e.firstName || ''} ${e.lastName || ''}`.trim() || 'Unknown',
+        role: e.role || e.jobRole || '-',
+        destination: e.destination || e.country || 'Open',
+      })) : [];
       
       if (viewOnly && agentId) {
         employees = employees.filter((e: Employee) => 
