@@ -1,5 +1,7 @@
-﻿import { redirect } from 'next/navigation';
+﻿'use client';
+
+import { RegistrationWizard } from '@/components/employees/registration-wizard';
 
 export default function Page() {
-  redirect('/employee-management/registration');
+  return <RegistrationWizard />;
 }
