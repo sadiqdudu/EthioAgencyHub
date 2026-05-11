@@ -154,6 +154,21 @@ export function CvGenerator() {
       if (data.success) {
         const html = generateCvHtml(data.data, selectedTemplate, selectedLanguage);
         setGeneratedCv(html);
+
+        try {
+          await fetch('/api/cvs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              employeeId: empId,
+              template: selectedTemplate,
+              language: selectedLanguage,
+              htmlContent: html
+            })
+          });
+        } catch (saveError) {
+          console.log('CV saved locally only');
+        }
       }
     } catch (error) {
       console.error('Error generating CV:', error);
@@ -174,6 +189,20 @@ export function CvGenerator() {
         if (data.success) {
           await generateAndDownloadPdf(data.data, selectedTemplate, selectedLanguage);
           setGeneratedCount(prev => prev + 1);
+
+          try {
+            const html = generateCvHtml(data.data, selectedTemplate, selectedLanguage);
+            await fetch('/api/cvs', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                employeeId: empId,
+                template: selectedTemplate,
+                language: selectedLanguage,
+                htmlContent: html
+              })
+            });
+          } catch (e) {}
         }
       } catch (error) {
         console.error(`Error generating CV for ${empId}:`, error);

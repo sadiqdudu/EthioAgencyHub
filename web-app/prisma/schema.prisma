@@ -124,6 +124,7 @@ model Employee {
   status              EmployeeStatus @default(REGISTERED)
   documents           Document[]
   travels             Travel[]
+  generatedCvs       GeneratedCv[]
   selectedByAgent     String?
   selectedAt          DateTime?
   deletedAt           DateTime?
@@ -298,4 +299,23 @@ model RefreshToken {
 
   @@index([userId])
   @@index([tokenId])
+}
+
+model GeneratedCv {
+  id            String   @id @default(cuid())
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  employeeId    String
+  template      String
+  language      String
+  pdfData       Bytes?
+  htmlContent   String?
+  status        String   @default("generated")
+  generatedBy  String?
+  downloadedAt  DateTime?
+  sharedWith    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([createdAt])
 }
