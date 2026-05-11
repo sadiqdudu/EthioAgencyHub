@@ -11,7 +11,9 @@ import {
   Bell, BellRing, CheckSquare, X, Save, Plus, CreditCard, Receipt,
   ChevronDown, ChevronUp, Globe, BookOpen, DollarSign, Send,
   ClipboardList, Luggage, Timer, Flag, CheckSquare2, BarChart3,
-  ChevronLeft
+  ChevronLeft, Radio, Video, LayoutDashboard, Route, BarChart4,
+  CalendarRange, UsersRound, VideoIcon, SquareCheckBig, Handshake,
+  QrCode
 } from 'lucide-react';
 
 interface TravelEmployee {
@@ -85,7 +87,7 @@ interface FlightSchedule {
 }
 
 export function TravelManagementModule() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'booking' | 'schedule' | 'tickets' | 'preparation' | 'departure' | 'arrival'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'schedule' | 'tickets' | 'departure' | 'preparation' | 'arrival'>('overview');
   const [employees, setEmployees] = useState<TravelEmployee[]>([]);
   const [bookings, setBookings] = useState<TicketBooking[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -278,13 +280,12 @@ export function TravelManagementModule() {
   const arrivedCount = employees.filter(e => e.status === 'arrived').length;
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: Plane, description: 'Readiness funnel & alerts' },
-    { id: 'booking', label: 'Booking', icon: Calendar, description: 'Book flights & tickets' },
-    { id: 'schedule', label: 'Schedule', icon: Clock, description: 'Flight details & triggers' },
-    { id: 'tickets', label: 'Tickets', icon: Ticket, description: 'Documents & orientation' },
-    { id: 'preparation', label: 'Departure Prep', icon: CheckCircle2, description: '72-hour checklist' },
-    { id: 'departure', label: "Today's Fly List", icon: PlaneTakeoff, description: 'Live departures' },
-    { id: 'arrival', label: 'Arrival', icon: PlaneLanding, description: 'Safe arrival tracking' },
+    { id: 'overview', label: 'Command Center', icon: LayoutDashboard, description: 'Live travel pipeline & alerts' },
+    { id: 'schedule', label: 'Schedule', icon: Calendar, description: 'Itinerary & slot management' },
+    { id: 'tickets', label: 'Tickets', icon: Ticket, description: 'Booking & financial workflow' },
+    { id: 'departure', label: "Today's Departures", icon: PlaneTakeoff, description: 'Live operations & check-in' },
+    { id: 'preparation', label: 'Departure Prep', icon: CheckCircle2, description: '72-hour checklist & orientation' },
+    { id: 'arrival', label: 'Arrival', icon: PlaneLanding, description: 'In-country arrival confirmation' },
   ];
 
   return (
@@ -388,12 +389,11 @@ export function TravelManagementModule() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'overview' && <OverviewTab employees={filteredEmployees} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}
-      {activeTab === 'booking' && <BookingTab bookings={bookings} setBookings={setBookings} isBookingModalOpen={isBookingModalOpen} setIsBookingModalOpen={setIsBookingModalOpen} bookingForm={bookingForm} setBookingForm={setBookingForm} handleCreateBooking={handleCreateBooking} employees={employees} />}
+      {activeTab === 'overview' && <OverviewTab employees={filteredEmployees} />}
       {activeTab === 'schedule' && <ScheduleTab employees={employees} />}
       {activeTab === 'tickets' && <TicketsTab employees={filteredEmployees} />}
-      {activeTab === 'preparation' && <PreparationTab employees={filteredEmployees} />}
       {activeTab === 'departure' && <DepartureTab employees={employees} />}
+      {activeTab === 'preparation' && <PreparationTab employees={filteredEmployees} />}
       {activeTab === 'arrival' && <ArrivalTab employees={employees} />}
     </div>
   );
@@ -767,125 +767,161 @@ function BookingTab({ bookings, setBookings, isBookingModalOpen, setIsBookingMod
 }
 
 // Overview Tab with Readiness Funnel
-function OverviewTab({ employees, searchQuery, setSearchQuery }: { employees: TravelEmployee[], searchQuery: string, setSearchQuery: (q: string) => void }) {
-  const [roleFilter, setRoleFilter] = useState('all');
+// ===== Overview – Digital Command Center =====
+function OverviewTab({ employees }: { employees: TravelEmployee[] }) {
+  const total = employees.length;
+  const inRural = employees.filter(e => e.status === 'pending' || e.transitStatus.t72hours === 'pending').length;
+  const inTransit = employees.filter(e => e.status === 'transit_to_addis' || e.transitStatus.t72hours === 'bus_started').length;
+  const atHostel = employees.filter(e => e.status === 'hostel_checkin' || e.transitStatus.t48hours === 'arrived_hostel').length;
+  const ready = employees.filter(e => e.status === 'ready' || e.status === 'orientation_done').length;
+  const departed = employees.filter(e => e.status === 'departed').length;
+  const arrived = employees.filter(e => e.status === 'arrived').length;
+  const urgent72 = employees.filter(e => e.transitStatus.t72hours !== 'confirmed' && e.transitStatus.t72hours !== 'bus_started').length;
+  const visaCleared = employees.filter(e => e.documents.visa).length;
+  const medicalCleared = employees.filter(e => e.documents.yellowCard).length;
 
   return (
     <div className="space-y-6">
-      {/* Search */}
-      <div className="flex gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Search by name, ID, or destination..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none"
-          />
-        </div>
-        <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-          className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
-        >
-          <option value="all">All Roles</option>
-          <option value="local_agent">Local Agent</option>
-          <option value="staff">Staff</option>
-        </select>
-      </div>
-
-      {/* 72-Hour Alert Banner */}
-      <div className="rounded-2xl border-2 border-red-200 bg-red-50 p-4">
-        <div className="flex items-center gap-3">
-          <BellRing className="h-6 w-6 text-red-600" />
-          <div>
-            <p className="font-bold text-red-800">72-Hour Alert - Action Required</p>
-            <p className="text-sm text-red-700">{employees.filter(e => e.transitStatus.t72hours !== 'confirmed').length} workers need confirmation for departure in next 72 hours</p>
+      {/* 72-Hour Automated Alert Banner */}
+      {urgent72 > 0 && (
+        <div className="rounded-2xl border-2 border-red-200 bg-gradient-to-r from-red-50 to-orange-50 p-5 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="p-2 rounded-xl bg-red-100"><BellRing className="h-6 w-6 text-red-600" /></div>
+            <div className="flex-1">
+              <p className="font-bold text-red-800 text-lg">72-hour Departure Alert – Action Required</p>
+              <p className="text-sm text-red-700 mt-1">{urgent72} employee{urgent72 > 1 ? 's' : ''} reaching the 72-hour departure mark need confirmation.</p>
+            </div>
+            <button className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-700 shadow-sm">View Tasks</button>
           </div>
-          <button className="ml-auto px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-medium">
-            View Tasks
-          </button>
+        </div>
+      )}
+
+      {/* Department Bridge – Visa & Medical Clearance View */}
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 shadow-sm">
+        <h3 className="font-bold text-ink flex items-center gap-2 mb-4">
+          <Shield className="h-5 w-5 text-blue-600" />
+          Department Bridge – Clearance Status
+        </h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl bg-white border border-blue-200 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-blue-800 flex items-center gap-2"><FileText className="h-4 w-4" /> Visa Department</span>
+              <span className="text-sm font-bold text-blue-700">{visaCleared}/{total}</span>
+            </div>
+            <div className="h-2.5 w-full rounded-full bg-blue-100">
+              <div className="h-2.5 rounded-full bg-blue-500 transition-all" style={{ width: `${total ? (visaCleared / total) * 100 : 0}%` }} />
+            </div>
+            <p className="text-xs text-blue-600 mt-2">{total - visaCleared} employee{total - visaCleared !== 1 ? 's' : ''} pending visa issuance</p>
+          </div>
+          <div className="rounded-xl bg-white border border-green-200 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-green-800 flex items-center gap-2"><FileCheck className="h-4 w-4" /> Medical Department</span>
+              <span className="text-sm font-bold text-green-700">{medicalCleared}/{total}</span>
+            </div>
+            <div className="h-2.5 w-full rounded-full bg-green-100">
+              <div className="h-2.5 rounded-full bg-green-500 transition-all" style={{ width: `${total ? (medicalCleared / total) * 100 : 0}%` }} />
+            </div>
+            <p className="text-xs text-green-600 mt-2">{total - medicalCleared} employee{total - medicalCleared !== 1 ? 's' : ''} need medical clearance</p>
+          </div>
         </div>
       </div>
 
-      {/* Status Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {['transit_to_addis', 'hostel_checkin', 'orientation_done', 'ready'].map((status) => {
-          const count = employees.filter(e => e.status === status).length;
-          return (
-            <div key={status} className="rounded-2xl border border-slate-200 bg-white p-5">
-              <p className="text-sm text-slate-500 capitalize">{status.replace(/_/g, ' ')}</p>
-              <p className="text-3xl font-bold text-ink mt-1">{count}</p>
-              <div className="mt-3 flex gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className={`h-2 flex-1 rounded-full ${i < count ? 'bg-blue-500' : 'bg-slate-100'}`} />
-                ))}
+      {/* Data Summary – Visual Pipeline */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200 p-5">
+          <Building2 className="h-6 w-6 text-amber-600 mb-3" />
+          <p className="text-3xl font-bold text-amber-800">{inRural}</p>
+          <p className="text-sm font-medium text-amber-700">In Rural Areas</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 p-5">
+          <Bus className="h-6 w-6 text-blue-600 mb-3" />
+          <p className="text-3xl font-bold text-blue-800">{inTransit}</p>
+          <p className="text-sm font-medium text-blue-700">En Route to Addis</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200 p-5">
+          <Home className="h-6 w-6 text-purple-600 mb-3" />
+          <p className="text-3xl font-bold text-purple-800">{atHostel}</p>
+          <p className="text-sm font-medium text-purple-700">At Agency Hostel</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200 p-5">
+          <BadgeCheck className="h-6 w-6 text-green-600 mb-3" />
+          <p className="text-3xl font-bold text-green-800">{ready}</p>
+          <p className="text-sm font-medium text-green-700">Cleared for Travel</p>
+        </div>
+      </div>
+
+      {/* Traffic Light Pipeline */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="font-bold text-ink mb-4">Travel Pipeline Overview</h3>
+        <div className="flex items-center gap-1 h-10 rounded-xl overflow-hidden">
+          {[
+            { label: 'Rural', count: inRural, color: 'bg-amber-500' },
+            { label: 'Transit', count: inTransit, color: 'bg-blue-500' },
+            { label: 'Hostel', count: atHostel, color: 'bg-purple-500' },
+            { label: 'Ready', count: ready, color: 'bg-green-500' },
+            { label: 'Departed', count: departed, color: 'bg-cyan-500' },
+            { label: 'Arrived', count: arrived, color: 'bg-emerald-500' },
+          ].map(s => (
+            <div key={s.label} className={`${s.color} h-full flex items-center justify-center text-white text-xs font-bold transition-all`} style={{ width: `${total ? (s.count / total) * 100 : 0}%`, minWidth: s.count > 0 ? '4%' : '0' }}>
+              {s.count > 0 ? `${Math.round((s.count / total) * 100)}%` : ''}
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-between mt-2 text-xs text-slate-500">
+          {[{ label: 'Rural', count: inRural }, { label: 'Transit', count: inTransit }, { label: 'Hostel', count: atHostel }, { label: 'Ready', count: ready }, { label: 'Departed', count: departed }, { label: 'Arrived', count: arrived }].map(s => (
+            <span key={s.label}>{s.label}: <strong>{s.count}</strong></span>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent Travelers List */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
+          <h3 className="font-bold text-ink">Recent Travelers</h3>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {employees.slice(0, 8).map(emp => (
+            <div key={emp.id} className="flex items-center justify-between px-6 py-3.5 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm">{emp.name.charAt(0)}</div>
+                <div>
+                  <p className="font-semibold text-ink text-sm">{emp.name}</p>
+                  <p className="text-xs text-slate-500">{emp.destination} • {emp.flightNumber || 'No flight'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                  emp.status === 'arrived' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                  emp.status === 'departed' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                  emp.status === 'ready' ? 'bg-green-50 text-green-700 border-green-200' :
+                  emp.status === 'orientation_done' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                  emp.status === 'hostel_checkin' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                  'bg-blue-50 text-blue-700 border-blue-200'
+                }`}>{emp.status.replace(/_/g, ' ')}</span>
+                {emp.localAgentName && <span className="text-xs text-slate-400">Agent: {emp.localAgentName}</span>}
               </div>
             </div>
-          );
-        })}
+          ))}
+          {employees.length === 0 && <p className="text-center text-slate-500 py-8">No travelers found.</p>}
+        </div>
       </div>
 
-      {/* Employee List */}
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-          <h3 className="font-bold text-ink">All Travelers</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-white border-b border-slate-200">
-              <tr>
-                <th className="px-6 py-3 text-left font-semibold">Employee</th>
-                <th className="px-6 py-3 text-left font-semibold">Destination</th>
-                <th className="px-6 py-3 text-left font-semibold">Flight</th>
-                <th className="px-6 py-3 text-left font-semibold">Transit Status</th>
-                <th className="px-6 py-3 text-left font-semibold">Status</th>
-                <th className="px-6 py-3 text-left font-semibold">Local Agent</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {employees.map((emp) => (
-                <tr key={emp.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-3">
-                    <p className="font-medium text-ink">{emp.name}</p>
-                    <p className="text-xs text-slate-500">{emp.employeeId}</p>
-                  </td>
-                  <td className="px-6 py-3 text-slate-600">{emp.destination}</td>
-                  <td className="px-6 py-3">
-                    <p className="font-medium">{emp.flightNumber}</p>
-                    <p className="text-xs text-slate-500">{emp.departureDate}</p>
-                  </td>
-                  <td className="px-6 py-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-xs">
-                        <Clock className="h-3 w-3 text-red-500" />
-                        <span className={emp.transitStatus.t72hours === 'bus_started' ? 'text-red-600 font-medium' : 'text-slate-500'}>
-                          72h: {emp.transitStatus.t72hours.replace('_', ' ')}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <Building2 className="h-3 w-3 text-orange-500" />
-                        <span className={emp.transitStatus.t48hours === 'arrived_hostel' ? 'text-orange-600 font-medium' : 'text-slate-500'}>
-                          48h: {emp.transitStatus.t48hours.replace('_', ' ')}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      emp.status === 'ready' ? 'bg-green-100 text-green-700' :
-                      emp.status === 'arrived' ? 'bg-emerald-100 text-emerald-700' :
-                      'bg-slate-100 text-slate-600'
-                    }`}>
-                      {emp.status.replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3 text-slate-600 text-sm">{emp.localAgentName || '-'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Role Task Matrix */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="font-bold text-ink mb-4 flex items-center gap-2"><Users className="h-5 w-5 text-brand-600" /> Digital Roles &amp; Tasks</h3>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { role: 'Visa Staff', task: 'Switches status to "Visa Issued" → auto-moves employee to Tickets section', icon: FileText, color: 'bg-blue-50 text-blue-700' },
+            { role: 'Ticket Staff', task: 'Uses Country/Airline filters to purchase group tickets and upload PDF', icon: Ticket, color: 'bg-green-50 text-green-700' },
+            { role: 'Airport Staff', task: 'Uses tablet at Bole Airport to check names off departure list', icon: Smartphone, color: 'bg-purple-50 text-purple-700' },
+            { role: 'In-Country Staff', task: 'Clicks "Confirmed Arrival" once employee lands at destination', icon: PlaneLanding, color: 'bg-amber-50 text-amber-700' },
+          ].map(r => (
+            <div key={r.role} className="rounded-xl border border-slate-100 p-4 hover:shadow-sm transition-shadow">
+              <div className={`w-10 h-10 rounded-xl ${r.color} flex items-center justify-center mb-3`}><r.icon className="h-5 w-5" /></div>
+              <h4 className="font-bold text-ink text-sm">{r.role}</h4>
+              <p className="text-xs text-slate-500 mt-1">{r.task}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -893,53 +929,97 @@ function OverviewTab({ employees, searchQuery, setSearchQuery }: { employees: Tr
 }
 
 // Schedule Tab
+// ===== Schedule – Logistics Planner =====
 function ScheduleTab({ employees }: { employees: TravelEmployee[] }) {
+  const [selectedRoute, setSelectedRoute] = useState('all');
+  const routes = Array.from(new Set(employees.map(e => `${e.terminal || 'T2'} → ${e.destination}`).filter(Boolean)));
+
+  const filtered = selectedRoute === 'all' ? employees : employees.filter(e => `${e.terminal || 'T2'} → ${e.destination}` === selectedRoute);
+
+  const groupedByDate = filtered.reduce((acc: Record<string, typeof filtered>, emp) => {
+    const date = emp.departureDate || 'Unassigned';
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(emp);
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-ink">Flight Schedule with 72-Hour Trigger</h3>
-          <button className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
+      {/* Sync & Calendar */}
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-white shadow-sm"><Calendar className="h-6 w-6 text-blue-600" /></div>
+            <div>
+              <h3 className="font-bold text-ink text-lg">Logistics Planner</h3>
+              <p className="text-sm text-slate-600 mt-1">Airline schedules, itinerary batches, and hostel slot management.</p>
+            </div>
+          </div>
+          <button className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700 shadow-sm">
             <Plus className="h-4 w-4" />
-            Import Flight
+            Import Itinerary
           </button>
         </div>
-        <div className="space-y-4">
-          {employees.filter(e => new Date(e.departureDate) >= new Date()).slice(0, 5).map((emp) => {
-            const daysUntil = Math.ceil((new Date(emp.departureDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-            const is72Hour = daysUntil <= 3 && daysUntil > 0;
-            return (
-              <div key={emp.id} className={`p-4 rounded-xl border ${is72Hour ? 'border-red-200 bg-red-50' : 'border-slate-200 bg-slate-50'}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-lg ${is72Hour ? 'bg-red-100' : 'bg-blue-100'}`}>
-                      <Plane className={`h-6 w-6 ${is72Hour ? 'text-red-600' : 'text-blue-600'}`} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-ink">{emp.flightNumber}</p>
-                      <p className="text-sm text-slate-500">{emp.destination}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{emp.departureDate} {emp.departureTime}</p>
-                    <p className="text-sm text-slate-500">Terminal {emp.terminal}</p>
-                    {is72Hour && (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-red-600 mt-1">
-                        <Clock className="h-3 w-3" />
-                        72-Hour Trigger Active
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-slate-600">{emp.name}</p>
-                    <button className="text-xs text-blue-600 hover:underline">Assign Staff</button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
       </div>
+
+      {/* Filter by Route */}
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm font-medium text-slate-500">Route:</span>
+        <button onClick={() => setSelectedRoute('all')} className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${selectedRoute === 'all' ? 'bg-brand-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>All Routes</button>
+        {routes.slice(0, 5).map(r => (
+          <button key={r} onClick={() => setSelectedRoute(r)} className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${selectedRoute === r ? 'bg-brand-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>{r}</button>
+        ))}
+      </div>
+
+      {/* Flights by Date */}
+      {Object.entries(groupedByDate).sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime()).map(([date, emps]) => {
+        const isSoon = Math.abs(new Date(date).getTime() - Date.now()) < 3 * 86400000;
+        return (
+          <div key={date} className={`rounded-2xl border ${isSoon ? 'border-red-200 bg-red-50/30' : 'border-slate-200 bg-white'} shadow-sm overflow-hidden`}>
+            <div className={`px-6 py-3 flex items-center justify-between border-b ${isSoon ? 'border-red-100 bg-red-50' : 'border-slate-100 bg-slate-50'}`}>
+              <div className="flex items-center gap-3">
+                <Calendar className={`h-5 w-5 ${isSoon ? 'text-red-600' : 'text-slate-500'}`} />
+                <span className="font-bold text-ink">{new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                {isSoon && <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-bold">72-Hour Window</span>}
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-slate-500">{emps.length} employee{emps.length > 1 ? 's' : ''}</span>
+                <span className="text-slate-400">Max: 12</span>
+                <button className="text-blue-600 text-xs font-semibold hover:underline">Sync Calendar</button>
+              </div>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {emps.map(emp => {
+                const days = Math.ceil((new Date(emp.departureDate).getTime() - Date.now()) / 86400000);
+                return (
+                  <div key={emp.id} className="flex items-center justify-between px-6 py-3.5 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-lg ${days <= 3 && days > 0 ? 'bg-red-100' : 'bg-blue-100'}`}>
+                        <Plane className={`h-5 w-5 ${days <= 3 && days > 0 ? 'text-red-600' : 'text-blue-600'}`} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-ink text-sm">{emp.name}</p>
+                        <p className="text-xs text-slate-500">{emp.flightNumber || 'Flight TBD'} • {emp.departureTime || 'TBD'} • {emp.terminal || 'T2'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-500">{emp.destination}</span>
+                      {days > 0 && days <= 3 && <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-bold">{days}d left</span>}
+                      <div className="flex gap-2">
+                        <button className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700">Assign</button>
+                        <button className="px-3 py-1.5 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50">Slot</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      {Object.keys(groupedByDate).length === 0 && (
+        <div className="text-center text-slate-500 py-12">No scheduled flights for this route.</div>
+      )}
     </div>
   );
 }
@@ -1328,128 +1408,173 @@ function TicketsTab({ employees }: { employees: TravelEmployee[] }) {
 }
 
 // Departure Prep Tab with 72-Hour Checklist
+// ===== Departure Prep – Checklist & Orientation =====
 function PreparationTab({ employees }: { employees: TravelEmployee[] }) {
-  const checklistItems = [
-    { key: 't72hours', label: '72-Hour Call: Confirm worker has left village', icon: Phone },
-    { key: 'documents', label: 'Document Verification: Passport, Visa, Contract, Insurance', icon: FileText },
-    { key: 'orientation', label: 'Airport Orientation: Boarding pass, security, lavatory', icon: Plane },
-    { key: 'sim', label: 'Communication Prep: SIM card or contact method', icon: Smartphone },
-  ];
+  const [completedSteps, setCompletedSteps] = useState<Record<string, string[]>>({
+    call72: [], documents: [], orientation: [], baggage: [], family: []
+  });
+
+  const toggle = (section: string, id: string) => {
+    setCompletedSteps(prev => ({
+      ...prev,
+      [section]: prev[section].includes(id) ? prev[section].filter(x => x !== id) : [...prev[section], id]
+    }));
+  };
+
+  const totalEmployees = employees.length;
+  const docVerified = employees.filter(e => e.documents.passport && e.documents.visa && e.documents.yellowCard).length;
+  const orientationDone = employees.filter(e => e.documents.orientationComplete).length;
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-        <div className="flex items-center gap-3">
-          <Clock4 className="h-6 w-6 text-red-600" />
+      {/* Safety Gates Header */}
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-green-50 to-emerald-50 p-6 shadow-sm">
+        <div className="flex items-center gap-4">
+          <Shield className="h-8 w-8 text-green-600" />
           <div>
-            <p className="font-bold text-red-800">Rural Transit Tracker - 72-Hour Workflow</p>
-            <p className="text-sm text-red-700">Track workers from rural villages to Addis Ababa</p>
+            <h3 className="font-bold text-ink text-lg">Safety Gates – 100% Readiness Checklist</h3>
+            <p className="text-sm text-slate-600 mt-1">Every employee must pass all gates before reaching Bole International Airport.</p>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {checklistItems.map((item) => {
-          const Icon = item.icon;
-          const pendingCount = employees.filter(e => 
-            item.key === 't72hours' ? e.transitStatus.t72hours !== 'bus_started' :
-            item.key === 'documents' ? !e.documents.passport || !e.documents.visa :
-            item.key === 'orientation' ? !e.documents.orientationComplete :
-            false
-          ).length;
-          
-          return (
-            <div key={item.key} className="rounded-2xl border border-slate-200 bg-white p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-100">
-                    <Icon className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <h4 className="font-semibold text-ink">{item.label}</h4>
+      {/* Overall Progress */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500 uppercase">72-Hour Call</p>
+          <p className="text-2xl font-bold text-ink mt-1">{completedSteps.call72.length}/{totalEmployees}</p>
+          <div className="h-2 mt-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-blue-500 transition-all" style={{ width: `${totalEmployees ? (completedSteps.call72.length / totalEmployees) * 100 : 0}%` }} /></div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500 uppercase">Documents Verified</p>
+          <p className="text-2xl font-bold text-ink mt-1">{docVerified}/{totalEmployees}</p>
+          <div className="h-2 mt-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-purple-500 transition-all" style={{ width: `${totalEmployees ? (docVerified / totalEmployees) * 100 : 0}%` }} /></div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500 uppercase">Orientation Watched</p>
+          <p className="text-2xl font-bold text-ink mt-1">{orientationDone}/{totalEmployees}</p>
+          <div className="h-2 mt-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-green-500 transition-all" style={{ width: `${totalEmployees ? (orientationDone / totalEmployees) * 100 : 0}%` }} /></div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500 uppercase">Baggage Checked</p>
+          <p className="text-2xl font-bold text-ink mt-1">{completedSteps.baggage.length}/{totalEmployees}</p>
+          <div className="h-2 mt-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-amber-500 transition-all" style={{ width: `${totalEmployees ? (completedSteps.baggage.length / totalEmployees) * 100 : 0}%` }} /></div>
+        </div>
+      </div>
+
+      {/* Interactive Checklists */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* 72-Hour Call */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-xl bg-blue-100"><Phone className="h-5 w-5 text-blue-600" /></div>
+            <h4 className="font-bold text-ink">72-Hour Call – Confirm departure from village</h4>
+          </div>
+          <div className="space-y-2 max-h-52 overflow-y-auto">
+            {employees.map(emp => (
+              <label key={emp.id} className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all ${completedSteps.call72.includes(emp.id) ? 'bg-blue-50 border border-blue-200' : 'bg-slate-50 hover:bg-slate-100 border border-transparent'}`}>
+                <input type="checkbox" checked={completedSteps.call72.includes(emp.id)} onChange={() => toggle('call72', emp.id)} className="h-4 w-4 rounded border-slate-300 text-blue-600" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ink">{emp.name}</p>
+                  <p className="text-xs text-slate-500">{emp.destination} • Agent: {emp.localAgentName || '-'}</p>
                 </div>
-                <span className="text-sm font-medium text-slate-500">{pendingCount} pending</span>
-              </div>
-              <div className="space-y-2">
-                {employees.slice(0, 3).map((emp) => (
-                  <div key={emp.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-sm">{emp.name}</p>
-                      <p className="text-xs text-slate-500">{emp.localAgentName}</p>
+                {completedSteps.call72.includes(emp.id) && <CheckCircle2 className="h-5 w-5 text-blue-600 shrink-0" />}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Document Handover */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-xl bg-purple-100"><FileText className="h-5 w-5 text-purple-600" /></div>
+            <h4 className="font-bold text-ink">Document Handover – Passport, Visa, Contract verified</h4>
+          </div>
+          <div className="space-y-2 max-h-52 overflow-y-auto">
+            {employees.map(emp => {
+              const allDocs = emp.documents.passport && emp.documents.visa && emp.documents.yellowCard;
+              return (
+                <div key={emp.id} className={`flex items-center gap-3 p-2.5 rounded-xl ${allDocs ? 'bg-green-50' : 'bg-amber-50'}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-ink">{emp.name}</p>
+                    <div className="flex gap-2 mt-1 text-xs">
+                      <span className={emp.documents.passport ? 'text-green-600' : 'text-red-500'}>Passport {emp.documents.passport ? '✓' : '✗'}</span>
+                      <span className={emp.documents.visa ? 'text-green-600' : 'text-red-500'}>Visa {emp.documents.visa ? '✓' : '✗'}</span>
+                      <span className={emp.documents.yellowCard ? 'text-green-600' : 'text-red-500'}>Medical {emp.documents.yellowCard ? '✓' : '✗'}</span>
                     </div>
-                    <button className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200">
-                      Mark Done
-                    </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+                  {allDocs ? <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" /> : <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
-// Today's Departure (Fly List) Tab
-function DepartureTab({ employees }: { employees: TravelEmployee[] }) {
-  const todayEmployees = employees.filter(e => 
-    e.status === 'ready' || e.status === 'departed' || e.status === 'orientation_done'
-  );
+        {/* Orientation Video */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-xl bg-green-100"><Video className="h-5 w-5 text-green-600" /></div>
+            <h4 className="font-bold text-ink">Orientation Video – "How to Navigate the Airport"</h4>
+          </div>
+          <div className="space-y-2 max-h-52 overflow-y-auto">
+            {employees.map(emp => (
+              <label key={emp.id} className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all ${completedSteps.orientation.includes(emp.id) ? 'bg-green-50 border border-green-200' : 'bg-slate-50 hover:bg-slate-100 border border-transparent'}`}>
+                <input type="checkbox" checked={completedSteps.orientation.includes(emp.id)} onChange={() => toggle('orientation', emp.id)} className="h-4 w-4 rounded border-slate-300 text-green-600" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ink">{emp.name}</p>
+                  <p className="text-xs text-slate-500">{emp.localAgentName ? `Confirmed by ${emp.localAgentName}` : 'Not assigned'}</p>
+                </div>
+                {completedSteps.orientation.includes(emp.id) && <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />}
+              </label>
+            ))}
+          </div>
+          <button className="mt-3 w-full rounded-xl bg-green-600 py-2.5 text-sm font-bold text-white hover:bg-green-700 shadow-sm">
+            <Video className="h-4 w-4 inline-block mr-2" />Watch Airport Guide Video
+          </button>
+        </div>
 
-  return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
-        <div className="flex items-center gap-3">
-          <PlaneTakeoff className="h-6 w-6 text-green-600" />
-          <div>
-            <p className="font-bold text-green-800">Fly List - Next 24 Hours</p>
-            <p className="text-sm text-green-700">{todayEmployees.length} workers scheduled for departure</p>
+        {/* Baggage Weight Check */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-xl bg-amber-100"><Luggage className="h-5 w-5 text-amber-600" /></div>
+            <h4 className="font-bold text-ink">Baggage Weight Check – Avoid extra fees</h4>
+          </div>
+          <div className="space-y-2 max-h-52 overflow-y-auto">
+            {employees.map(emp => (
+              <label key={emp.id} className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all ${completedSteps.baggage.includes(emp.id) ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50 hover:bg-slate-100 border border-transparent'}`}>
+                <input type="checkbox" checked={completedSteps.baggage.includes(emp.id)} onChange={() => toggle('baggage', emp.id)} className="h-4 w-4 rounded border-slate-300 text-amber-600" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ink">{emp.name}</p>
+                  <p className="text-xs text-slate-500">Rural area: {['Jimma', 'Wolkite', 'Nekemte', 'Arba Minch'][Math.floor(Math.random() * 4)]} • Expected: 20-30kg</p>
+                </div>
+                {completedSteps.baggage.includes(emp.id) && <CheckCircle2 className="h-5 w-5 text-amber-600 shrink-0" />}
+              </label>
+            ))}
+          </div>
+          <div className="mt-3 p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-700">
+            <Luggage className="h-4 w-4 inline-block mr-1" />
+            Reminder: Rural workers often carry heavy luggage. Advise 20kg max to avoid extra fees.
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-          <h3 className="font-bold text-ink">Active Fly List</h3>
+      {/* Family Emergency Contact – Rural Connectivity */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-xl bg-red-100"><Home className="h-5 w-5 text-red-600" /></div>
+          <h4 className="font-bold text-ink">Rural Connectivity – Family Emergency Contact</h4>
         </div>
-        <div className="divide-y divide-slate-100">
-          {todayEmployees.map((emp) => (
-            <div key={emp.id} className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600">
-                    {emp.name.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div>
-                    <p className="font-bold text-ink">{emp.name}</p>
-                    <p className="text-sm text-slate-500">{emp.employeeId}</p>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <p className="font-bold text-lg">{emp.flightNumber}</p>
-                  <p className="text-sm text-slate-500">{emp.departureTime}</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-medium">{emp.destination}</p>
-                  <p className="text-sm text-slate-500">Terminal {emp.terminal}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600">Assigned: {emp.assignedStaffName || '-'}</p>
-                </div>
-                <div className="flex gap-2">
-                  {emp.status === 'ready' ? (
-                    <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium">
-                      <CheckCircle2 className="h-4 w-4" />
-                      Boarded
-                    </button>
-                  ) : (
-                    <span className="px-4 py-2 bg-amber-100 text-amber-700 rounded-xl text-sm font-medium">
-                      {emp.status.replace(/_/g, ' ')}
-                    </span>
-                  )}
-                </div>
+        <p className="text-sm text-slate-500 mb-4">Log the family emergency contact status so agency staff can reach the family once the employee arrives safely abroad.</p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {employees.slice(0, 6).map(emp => (
+            <label key={emp.id} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border ${completedSteps.family.includes(emp.id) ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}>
+              <input type="checkbox" checked={completedSteps.family.includes(emp.id)} onChange={() => toggle('family', emp.id)} className="h-4 w-4 rounded border-slate-300 text-green-600" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-ink truncate">{emp.name}</p>
+                <p className="text-xs text-slate-500">{emp.destination} • {emp.phone}</p>
               </div>
-            </div>
+              {completedSteps.family.includes(emp.id) && <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />}
+            </label>
           ))}
         </div>
       </div>
@@ -1457,35 +1582,238 @@ function DepartureTab({ employees }: { employees: TravelEmployee[] }) {
   );
 }
 
-// Arrival Tab
-function ArrivalTab({ employees }: { employees: TravelEmployee[] }) {
-  const arrivedEmployees = employees.filter(e => e.status === 'arrived');
+// Today's Departure (Fly List) Tab
+// ===== Today's Departures – Live Operations =====
+function DepartureTab({ employees }: { employees: TravelEmployee[] }) {
+  const today = employees.filter(e => e.status === 'ready' || e.status === 'departed' || e.status === 'orientation_done');
+  const [checkedIn, setCheckedIn] = useState<string[]>([]);
+  const [boarded, setBoarded] = useState<string[]>([]);
+  const [noShow, setNoShow] = useState<string[]>([]);
+
+  const total = today.length;
+  const checked = checkedIn.length;
+  const onBoard = boarded.length;
+  const missing = noShow.length;
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 p-5">
-          <div className="flex items-center justify-between mb-3">
-            <PlaneLanding className="h-6 w-6 text-emerald-600" />
-          </div>
-          <p className="text-3xl font-bold text-emerald-800">{arrivedEmployees.length}</p>
-          <p className="text-sm font-medium text-emerald-700 mt-1">Total Arrived</p>
+      {/* Live Ops Summary */}
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+        <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 p-4">
+          <Users className="h-5 w-5 text-blue-600 mb-2" />
+          <p className="text-2xl font-bold text-blue-800">{total}</p>
+          <p className="text-xs font-medium text-blue-700">Today&apos;s Manifest</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h4 className="font-semibold text-ink mb-3">Pending Arrival Confirmation</h4>
-          <p className="text-sm text-slate-500">{employees.filter(e => e.status === 'departed').length} workers in transit</p>
+        <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200 p-4">
+          <MapPin className="h-5 w-5 text-amber-600 mb-2" />
+          <p className="text-2xl font-bold text-amber-800">{checked}</p>
+          <p className="text-xs font-medium text-amber-700">Arrived at Airport</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h4 className="font-semibold text-ink mb-3">In-Country Staff Actions</h4>
-          <button className="w-full rounded-xl bg-emerald-600 py-2 text-sm font-medium text-white">
-            Log Safe Arrival
-          </button>
+        <div className="rounded-2xl bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200 p-4">
+          <CheckCircle2 className="h-5 w-5 text-green-600 mb-2" />
+          <p className="text-2xl font-bold text-green-800">{onBoard}</p>
+          <p className="text-xs font-medium text-green-700">Boarded</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-red-50 to-red-100/50 border border-red-200 p-4">
+          <AlertCircle className="h-5 w-5 text-red-600 mb-2" />
+          <p className="text-2xl font-bold text-red-800">{missing}</p>
+          <p className="text-xs font-medium text-red-700">No-Show</p>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+      {/* Live Manifest */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+          <h3 className="font-bold text-ink flex items-center gap-2"><PlaneTakeoff className="h-5 w-5 text-brand-600" /> Live Departure Manifest</h3>
+          <span className="text-xs text-slate-500">Bole International Airport</span>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {today.map(emp => {
+            const isChecked = checkedIn.includes(emp.id);
+            const isBoarded = boarded.includes(emp.id);
+            const isMissing = noShow.includes(emp.id);
+            return (
+              <div key={emp.id} className={`px-6 py-4 transition-all ${isBoarded ? 'bg-green-50' : isMissing ? 'bg-red-50' : 'hover:bg-slate-50'}`}>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="h-10 w-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm shrink-0">
+                      {emp.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-ink truncate">{emp.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{emp.flightNumber || 'Flight TBD'} • {emp.departureTime || 'TBD'} • Terminal {emp.terminal}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="font-semibold text-sm">{emp.destination}</p>
+                    <p className="text-xs text-slate-500">Agent: {emp.assignedStaffName || '-'}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    {!isChecked && !isBoarded && !isMissing && (
+                      <button onClick={() => setCheckedIn(prev => [...prev, emp.id])} className="px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700">
+                        <MapPin className="h-3.5 w-3.5 inline-block mr-1" />Arrived at Airport
+                      </button>
+                    )}
+                    {isChecked && !isBoarded && (
+                      <button onClick={() => { setBoarded(prev => [...prev, emp.id]); setCheckedIn(prev => prev.filter(x => x !== emp.id)); }} className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700">
+                        <CheckCircle2 className="h-3.5 w-3.5 inline-block mr-1" />Boarded
+                      </button>
+                    )}
+                    {isBoarded && (
+                      <span className="px-4 py-2 bg-green-100 text-green-700 rounded-xl text-xs font-bold flex items-center gap-1">
+                        <CheckCircle2 className="h-4 w-4" />Confirmed
+                      </span>
+                    )}
+                    {!isBoarded && !isMissing && (
+                      <button onClick={() => setNoShow(prev => [...prev, emp.id])} className="px-3 py-2 border border-red-200 text-red-600 rounded-xl text-xs font-bold hover:bg-red-50">
+                        No-Show
+                      </button>
+                    )}
+                    {isMissing && (
+                      <span className="px-3 py-2 bg-red-100 text-red-700 rounded-xl text-xs font-bold">Delayed – Reschedule</span>
+                    )}
+                  </div>
+                </div>
+                {/* Inline trigger: when Boarded clicked, SMS notification note */}
+                {isBoarded && (
+                  <div className="mt-3 flex items-center gap-2 text-xs text-green-700 bg-green-100 rounded-lg px-4 py-2">
+                    <Send className="h-3.5 w-3.5" />
+                    Automated message sent to In-Country Staff: {emp.name} has boarded flight {emp.flightNumber}.
+                  </div>
+                )}
+                {isMissing && (
+                  <div className="mt-3 flex items-center gap-2 text-xs text-red-700 bg-red-100 rounded-lg px-4 py-2">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    Alert sent to Agent: {emp.name} did not arrive from rural area. Rescheduling required.
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {today.length === 0 && <p className="text-center text-slate-500 py-12">No departures scheduled for today.</p>}
+        </div>
+      </div>
+
+      {/* Airport Staff Tablet Interface */}
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50 p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <Smartphone className="h-6 w-6 text-blue-600" />
+          <h3 className="font-bold text-ink">Airport Staff Tablet – Bole International</h3>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-xl bg-white border border-slate-200 p-4 hover:shadow-sm">
+            <QrCode className="h-8 w-8 text-brand-600 mb-2" />
+            <h4 className="font-semibold text-sm">Scan Boarding Pass</h4>
+            <p className="text-xs text-slate-500 mt-1">Use camera to scan employee QR code and auto-check-in.</p>
+          </div>
+          <div className="rounded-xl bg-white border border-slate-200 p-4 hover:shadow-sm">
+            <Bell className="h-8 w-8 text-blue-600 mb-2" />
+            <h4 className="font-semibold text-sm">Push Notification to Office</h4>
+            <p className="text-xs text-slate-500 mt-1">Alert operations manager when group has passed security.</p>
+          </div>
+          <div className="rounded-xl bg-white border border-slate-200 p-4 hover:shadow-sm">
+            <MessageSquare className="h-8 w-8 text-amber-600 mb-2" />
+            <h4 className="font-semibold text-sm">Flag Delayed Departure</h4>
+            <p className="text-xs text-slate-500 mt-1">Notify agents in rural areas if employee is missing.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Arrival Tab
+// ===== Arrival – In-Country Arrival Confirmation =====
+function ArrivalTab({ employees }: { employees: TravelEmployee[] }) {
+  const [confirmedArrivals, setConfirmedArrivals] = useState<string[]>([]);
+  const arrived = employees.filter(e => e.status === 'arrived');
+  const departed = employees.filter(e => e.status === 'departed');
+  const inTransit = departed.filter(e => !confirmedArrivals.includes(e.id));
+
+  const handleConfirmArrival = (id: string) => {
+    setConfirmedArrivals(prev => [...prev, id]);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Dashboard */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 p-5 shadow-sm">
+          <PlaneLanding className="h-6 w-6 text-emerald-600 mb-3" />
+          <p className="text-3xl font-bold text-emerald-800">{arrived.length + confirmedArrivals.length}</p>
+          <p className="text-sm font-medium text-emerald-700">Confirmed Arrivals</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200 p-5 shadow-sm">
+          <Plane className="h-6 w-6 text-amber-600 mb-3" />
+          <p className="text-3xl font-bold text-amber-800">{inTransit.length}</p>
+          <p className="text-sm font-medium text-amber-700">In Transit</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 p-5 shadow-sm">
+          <Users className="h-6 w-6 text-blue-600 mb-3" />
+          <p className="text-3xl font-bold text-blue-800">{employees.filter(e => e.inCountryStaff).length}</p>
+          <p className="text-sm font-medium text-blue-700">In-Country Staff</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200 p-5 shadow-sm">
+          <Bell className="h-6 w-6 text-purple-600 mb-3" />
+          <p className="text-3xl font-bold text-purple-800">{inTransit.length > 0 ? 1 : 0}</p>
+          <p className="text-sm font-medium text-purple-700">Pending Notifications</p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* In-Transit Workers – Waiting for Confirmation */}
+        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+            <h3 className="font-bold text-ink flex items-center gap-2"><PlaneLanding className="h-5 w-5 text-emerald-600" /> Pending Arrival Confirmation</h3>
+            <span className="text-xs text-slate-500">{inTransit.length} to confirm</span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {inTransit.map(emp => (
+              <div key={emp.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm">{emp.name.charAt(0)}</div>
+                  <div>
+                    <p className="font-bold text-ink text-sm">{emp.name}</p>
+                    <p className="text-xs text-slate-500">{emp.destination} • {emp.flightNumber} • In-country: {emp.inCountryStaff || 'Unassigned'}</p>
+                  </div>
+                </div>
+                <button onClick={() => handleConfirmArrival(emp.id)} className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-sm">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Confirm Arrival
+                </button>
+              </div>
+            ))}
+            {inTransit.length === 0 && (
+              <p className="text-center text-slate-500 py-12">All departed employees have confirmed arrivals.</p>
+            )}
+          </div>
+        </div>
+
+        {/* In-Country Staff Panel */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="font-bold text-ink mb-4 flex items-center gap-2"><Handshake className="h-5 w-5 text-brand-600" /> In-Country Staff Actions</h3>
+          <div className="space-y-3">
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
+              <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
+              <p className="font-bold text-emerald-800 text-sm">Click "Confirm Arrival"</p>
+              <p className="text-xs text-emerald-700 mt-1">Once employee lands in destination country</p>
+            </div>
+            <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
+              <div className="flex items-center gap-2 text-blue-800 font-bold text-sm mb-1"><Send className="h-4 w-4" /> Auto-Notification</div>
+              <p className="text-xs text-blue-700">Family & Agent will be notified when arrival is confirmed.</p>
+            </div>
+            <div className="p-4 rounded-xl bg-purple-50 border border-purple-200">
+              <div className="flex items-center gap-2 text-purple-800 font-bold text-sm mb-1"><Shield className="h-4 w-4" /> Safe Arrival Protocol</div>
+              <p className="text-xs text-purple-700">In-country staff must confirm within 24 hours of landing.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Confirmed Arrivals Table */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-          <h3 className="font-bold text-ink">Arrived Workers - Last 30 Days</h3>
+          <h3 className="font-bold text-ink">Confirmed Arrivals</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -1495,31 +1823,25 @@ function ArrivalTab({ employees }: { employees: TravelEmployee[] }) {
                 <th className="px-6 py-3 text-left">Destination</th>
                 <th className="px-6 py-3 text-left">Flight</th>
                 <th className="px-6 py-3 text-left">In-Country Staff</th>
-                <th className="px-6 py-3 text-left">Arrival Date</th>
+                <th className="px-6 py-3 text-left">Date</th>
                 <th className="px-6 py-3 text-left">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {arrivedEmployees.map((emp) => (
+              {[...arrived, ...employees.filter(e => confirmedArrivals.includes(e.id))].map((emp) => (
                 <tr key={emp.id} className="hover:bg-slate-50">
                   <td className="px-6 py-3 font-medium">{emp.name}</td>
                   <td className="px-6 py-3 text-slate-600">{emp.destination}</td>
-                  <td className="px-6 py-3">{emp.flightNumber}</td>
+                  <td className="px-6 py-3">{emp.flightNumber || '-'}</td>
                   <td className="px-6 py-3 text-slate-600">{emp.inCountryStaff || '-'}</td>
                   <td className="px-6 py-3 text-slate-500">{emp.departureDate}</td>
                   <td className="px-6 py-3">
-                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                      Arrived Safely
-                    </span>
+                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">Arrived Safely</span>
                   </td>
                 </tr>
               ))}
-              {arrivedEmployees.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                    No arrivals recorded yet
-                  </td>
-                </tr>
+              {arrived.length === 0 && confirmedArrivals.length === 0 && (
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">No arrivals recorded yet.</td></tr>
               )}
             </tbody>
           </table>
