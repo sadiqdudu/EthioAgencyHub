@@ -73,6 +73,7 @@ export const modules = [
     summary: 'Command center, schedule, ticket booking, departures, prep checklist, arrival.',
     submenu: [
       { title: 'Command Center', href: '/travel', icon: Plane },
+      { title: 'Visa', href: '/travel?tab=visa', icon: FileText },
       { title: 'Schedule', href: '/travel?tab=schedule', icon: Clock },
       { title: 'Tickets', href: '/travel?tab=tickets', icon: FileText },
       { title: "Today's Departures", href: '/travel?tab=departure', icon: TrendingUp },

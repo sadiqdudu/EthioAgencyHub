@@ -89,7 +89,7 @@ interface FlightSchedule {
 interface TravelModuleProps { initialTab?: string }
 
 export function TravelManagementModule({ initialTab }: TravelModuleProps) {
-  const tabMap: Record<string, any> = { overview: 'overview', schedule: 'schedule', tickets: 'tickets', departure: 'departure', preparation: 'preparation', arrival: 'arrival' };
+  const tabMap: Record<string, any> = { overview: 'overview', schedule: 'schedule', tickets: 'tickets', departure: 'departure', preparation: 'preparation', arrival: 'arrival', visa: 'visa' };
   const [activeTab, setActiveTab] = useState<any>(initialTab && tabMap[initialTab] ? tabMap[initialTab] : 'overview');
   const [employees, setEmployees] = useState<TravelEmployee[]>([]);
   const [bookings, setBookings] = useState<TicketBooking[]>([]);
@@ -284,6 +284,7 @@ export function TravelManagementModule({ initialTab }: TravelModuleProps) {
 
   const tabs = [
     { id: 'overview', label: 'Command Center', icon: LayoutDashboard, description: 'Live travel pipeline & alerts' },
+    { id: 'visa', label: 'Visa', icon: FileText, description: 'Embassy process & document tracking' },
     { id: 'schedule', label: 'Schedule', icon: Calendar, description: 'Itinerary & slot management' },
     { id: 'tickets', label: 'Tickets', icon: Ticket, description: 'Booking & financial workflow' },
     { id: 'departure', label: "Today's Departures", icon: PlaneTakeoff, description: 'Live operations & check-in' },
@@ -393,6 +394,7 @@ export function TravelManagementModule({ initialTab }: TravelModuleProps) {
 
       {/* Tab Content */}
       {activeTab === 'overview' && <OverviewTab employees={filteredEmployees} />}
+      {activeTab === 'visa' && <VisaTab employees={filteredEmployees} />}
       {activeTab === 'schedule' && <ScheduleTab employees={employees} />}
       {activeTab === 'tickets' && <TicketsTab employees={filteredEmployees} />}
       {activeTab === 'departure' && <DepartureTab employees={employees} />}
@@ -1023,6 +1025,288 @@ function ScheduleTab({ employees }: { employees: TravelEmployee[] }) {
       {Object.keys(groupedByDate).length === 0 && (
         <div className="text-center text-slate-500 py-12">No scheduled flights for this route.</div>
       )}
+    </div>
+  );
+}
+
+// ===== Visa Tab – Embassy Process & Document Tracking =====
+function VisaTab({ employees }: { employees: TravelEmployee[] }) {
+  const [embassyFilter, setEmbassyFilter] = useState('all');
+  const [stageFilter, setStageFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [visaStages, setVisaStages] = useState<Record<string, { embassy: string; stage: number; rejected?: string }>>({});
+
+  const embassies = ['Saudi Arabia (KSA)', 'UAE', 'Qatar', 'Kuwait', 'Jordan'];
+  const stageNames = ['Document Collection', 'Portal Registration', 'Submitted to Embassy', 'Visa Approved/Stamped', 'Rejected/Correction'];
+  const stageColors = ['bg-blue-100 text-blue-700', 'bg-purple-100 text-purple-700', 'bg-amber-100 text-amber-700', 'bg-emerald-100 text-emerald-700', 'bg-red-100 text-red-700'];
+
+  const getDocStatus = (emp: TravelEmployee) => {
+    const hasPassport = emp.documents.passport;
+    const hasMedical = emp.documents.yellowCard;
+    if (!hasPassport) return { label: 'No Passport', color: 'text-red-600', urgent: true };
+    if (!hasMedical) return { label: 'Medical Pending', color: 'text-amber-600', urgent: false };
+    return { label: 'Docs Ready', color: 'text-green-600', urgent: false };
+  };
+
+  const visaData = employees.map(emp => {
+    const vs = visaStages[emp.id] || { embassy: embassies[Math.floor(Math.random() * embassies.length)], stage: Math.floor(Math.random() * 4) };
+    return { ...emp, vs, docStatus: getDocStatus(emp) };
+  });
+
+  const filtered = visaData.filter(e => {
+    if (embassyFilter !== 'all' && e.vs.embassy !== embassyFilter) return false;
+    if (stageFilter !== 'all' && e.vs.stage !== parseInt(stageFilter)) return false;
+    if (searchQuery && !e.name.toLowerCase().includes(searchQuery.toLowerCase()) && !e.employeeId.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
+
+  const summary = {
+    total: filtered.length,
+    submittedToday: filtered.filter(e => e.vs.stage >= 2).length,
+    readyStamping: filtered.filter(e => e.vs.stage === 3).length,
+    urgent: filtered.filter(e => e.vs.stage < 2 && e.docStatus.urgent).length,
+  };
+
+  const toggleSelect = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const selectAll = () => setSelectedIds(prev => prev.length === filtered.length ? [] : filtered.map(e => e.id));
+
+  const updateStage = (id: string, stage: number) => {
+    setVisaStages(prev => ({ ...prev, [id]: { ...prev[id], stage } }));
+  };
+
+  const handleBulkManifest = () => {
+    alert(`Generated manifest for ${selectedIds.length} employees to the selected embassy.`);
+    setSelectedIds([]);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* ===== Visa Department Summary Dashboard ===== */}
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+        <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 p-4 shadow-sm">
+          <FileText className="h-5 w-5 text-blue-600 mb-2" />
+          <p className="text-2xl font-bold text-blue-800">{summary.total}</p>
+          <p className="text-xs font-medium text-blue-700">Passports in Office</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200 p-4 shadow-sm">
+          <Plane className="h-5 w-5 text-purple-600 mb-2" />
+          <p className="text-2xl font-bold text-purple-800">{summary.submittedToday}</p>
+          <p className="text-xs font-medium text-purple-700">Submitted to Embassies Today</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 p-4 shadow-sm">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600 mb-2" />
+          <p className="text-2xl font-bold text-emerald-800">{summary.readyStamping}</p>
+          <p className="text-xs font-medium text-emerald-700">Ready for Stamping</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-red-50 to-red-100/50 border border-red-200 p-4 shadow-sm">
+          <AlertCircle className="h-5 w-5 text-red-600 mb-2" />
+          <p className="text-2xl font-bold text-red-800">{summary.urgent}</p>
+          <p className="text-xs font-medium text-red-700">Expiring Documents (&lt;10 Days)</p>
+        </div>
+      </div>
+
+      {/* ===== Global Filter Bar ===== */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[180px]">
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Select Embassy</label>
+            <select value={embassyFilter} onChange={e => setEmbassyFilter(e.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="all">All Embassies</option>
+              {embassies.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
+          </div>
+          <div className="flex-1 min-w-[180px]">
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Select Visa Stage</label>
+            <select value={stageFilter} onChange={e => setStageFilter(e.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="all">All Stages</option>
+              {stageNames.map((s, i) => <option key={s} value={i}>{s}</option>)}
+            </select>
+          </div>
+          <div className="flex-[2] min-w-[220px]">
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Search Employee</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Name or Passport Number..."
+                className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-4 text-sm focus:border-brand-500 focus:outline-none" />
+            </div>
+          </div>
+          <button onClick={() => { setEmbassyFilter('all'); setStageFilter('all'); setSearchQuery(''); }} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Reset</button>
+        </div>
+      </div>
+
+      {/* ===== Activities Panel ===== */}
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 shadow-sm">
+        <h3 className="font-bold text-ink flex items-center gap-2 mb-3">
+          <ClipboardList className="h-5 w-5 text-blue-600" />
+          Visa Officer Activities
+        </h3>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl bg-white border border-slate-200 p-4 hover:shadow-sm cursor-pointer">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-blue-100"><Shield className="h-4 w-4 text-blue-600" /></div>
+              <span className="font-semibold text-sm">Authentication</span>
+            </div>
+            <p className="text-xs text-slate-500">Verify MoLS-signed contract & police clearance</p>
+          </div>
+          <div className="rounded-xl bg-white border border-slate-200 p-4 hover:shadow-sm cursor-pointer">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-green-100"><CheckCircle2 className="h-4 w-4 text-green-600" /></div>
+              <span className="font-semibold text-sm">Medical Upload</span>
+            </div>
+            <p className="text-xs text-slate-500">Confirm GAMCA medical result is "Fit" and uploaded</p>
+          </div>
+          <div className="rounded-xl bg-white border border-slate-200 p-4 hover:shadow-sm cursor-pointer">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-purple-100"><Globe className="h-4 w-4 text-purple-600" /></div>
+              <span className="font-semibold text-sm">Portal Entry</span>
+            </div>
+            <p className="text-xs text-slate-500">Enjaz/Musaned/Qatar Visa Portal digital application</p>
+          </div>
+          <div className="rounded-xl bg-white border border-slate-200 p-4 hover:shadow-sm cursor-pointer">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-amber-100"><UserCheck className="h-4 w-4 text-amber-600" /></div>
+              <span className="font-semibold text-sm">Fingerprint Appointment</span>
+            </div>
+            <p className="text-xs text-slate-500">Schedule biometrics for Qatar/UAE applications</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== Bulk Actions Bar ===== */}
+      {selectedIds.length > 0 && (
+        <div className="rounded-2xl border-2 border-brand-300 bg-brand-50 p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+          <p className="text-sm font-bold text-brand-800 flex items-center gap-2">
+            <CheckSquare2 className="h-5 w-5" />
+            {selectedIds.length} employee{selectedIds.length > 1 ? 's' : ''} selected
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={handleBulkManifest} className="rounded-xl bg-brand-600 px-5 py-2 text-sm font-bold text-white hover:bg-brand-700 shadow-sm">
+              <Download className="h-4 w-4 inline-block mr-1.5" />Generate Manifest
+            </button>
+            <button onClick={() => { filtered.filter(e => selectedIds.includes(e.id)).forEach(e => updateStage(e.id, Math.min(e.vs.stage + 1, 4))); setSelectedIds([]); }} className="rounded-xl border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100">
+              Advance Stage
+            </button>
+            <button onClick={() => setSelectedIds([])} className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100">Clear</button>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Visa Status Checklist Table ===== */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+          <h3 className="font-bold text-ink">Visa Status Checklist</h3>
+          <span className="text-xs text-slate-500">{filtered.length} employees</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-white border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-3 w-10"><input type="checkbox" checked={selectedIds.length === filtered.length && filtered.length > 0} onChange={selectAll} className="h-4 w-4 rounded border-slate-300 text-brand-600" /></th>
+                <th className="px-4 py-3 text-left">Employee Name</th>
+                <th className="px-4 py-3 text-left">Embassy</th>
+                <th className="px-4 py-3 text-left">Current Process Stage</th>
+                <th className="px-4 py-3 text-left">Action Required</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filtered.map(emp => {
+                const isExpanded = expandedId === emp.id;
+                const docStatus = emp.docStatus;
+                const isUrgent = docStatus.urgent || emp.vs.stage < 2;
+                return (
+                  <>
+                    <tr key={emp.id} className={`hover:bg-slate-50 transition-colors ${isUrgent && emp.vs.stage < 2 ? 'bg-red-50/40' : ''}`}>
+                      <td className="px-4 py-3"><input type="checkbox" checked={selectedIds.includes(emp.id)} onChange={() => toggleSelect(emp.id)} className="h-4 w-4 rounded border-slate-300 text-brand-600" /></td>
+                      <td className="px-4 py-3">
+                        <button onClick={() => setExpandedId(isExpanded ? null : emp.id)} className="flex items-center gap-2 font-medium text-ink hover:text-brand-600">
+                          {isExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                          {emp.name}
+                        </button>
+                        <p className="text-xs text-slate-400 ml-6">Passport: {emp.ticketNumber || 'N/A'}</p>
+                      </td>
+                      <td className="px-4 py-3"><span className="font-medium text-sm">{emp.vs.embassy}</span></td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${stageColors[emp.vs.stage] || 'bg-slate-100 text-slate-700'}`}>
+                          {stageNames[emp.vs.stage] || 'Unknown'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {emp.vs.stage === 4 ? (
+                          <span className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold">Visa Issued</span>
+                        ) : (
+                          <button onClick={() => updateStage(emp.id, emp.vs.stage + 1)} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 shadow-sm">
+                            {emp.vs.stage === 0 ? 'Submit Passport' : emp.vs.stage === 1 ? 'Submit to Embassy' : emp.vs.stage === 2 ? 'Book Appointment' : 'Mark Stamped'}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                    {/* ===== Expandable Detail Card ===== */}
+                    {isExpanded && (
+                      <tr key={`${emp.id}-detail`}>
+                        <td colSpan={5} className="px-6 py-5 bg-slate-50 border-b border-slate-200">
+                          <div className="grid gap-5 md:grid-cols-3">
+                            {/* Embassy Info */}
+                            <div className="rounded-xl border border-slate-200 bg-white p-4">
+                              <h4 className="font-bold text-ink text-sm mb-3 flex items-center gap-2"><Globe className="h-4 w-4 text-blue-600" /> Embassy</h4>
+                              <select value={emp.vs.embassy} onChange={e => setVisaStages(prev => ({ ...prev, [emp.id]: { ...prev[emp.id], embassy: e.target.value, stage: prev[emp.id]?.stage || 0 } }))}
+                                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm mb-3">
+                                {embassies.map(e => <option key={e} value={e}>{e}</option>)}
+                              </select>
+                              <div className="space-y-2 text-xs">
+                                <div className="flex justify-between"><span className="text-slate-500">Passport No:</span><span className="font-medium">{emp.ticketNumber || 'Not on file'}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Medical:</span><span className={emp.documents.yellowCard ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>{emp.documents.yellowCard ? 'Fit - Uploaded' : 'Pending'}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Police Clearance:</span><span className="text-green-600 font-medium">Verified</span></div>
+                              </div>
+                            </div>
+                            {/* Process Stage */}
+                            <div className="rounded-xl border border-slate-200 bg-white p-4">
+                              <h4 className="font-bold text-ink text-sm mb-3 flex items-center gap-2"><FileCheck className="h-4 w-4 text-purple-600" /> Process Stage</h4>
+                              <div className="space-y-3">
+                                {stageNames.map((name, i) => (
+                                  <label key={name} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${emp.vs.stage === i ? 'bg-brand-50 border border-brand-200' : 'bg-slate-50 hover:bg-slate-100'}`}>
+                                    <input type="radio" name={`stage-${emp.id}`} checked={emp.vs.stage === i} onChange={() => updateStage(emp.id, i)} className="h-4 w-4 text-brand-600" />
+                                    <div className="flex-1">
+                                      <span className="text-xs font-medium">{i + 1}. {name}</span>
+                                      {i === 4 && <span className="text-xs text-red-500 ml-2">Rejection reason: <input type="text" placeholder="e.g., Photo size" className="w-24 rounded border border-slate-200 px-1 text-xs" /></span>}
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                            {/* Documents & Agency Bridge */}
+                            <div className="rounded-xl border border-slate-200 bg-white p-4">
+                              <h4 className="font-bold text-ink text-sm mb-3 flex items-center gap-2"><Shield className="h-4 w-4 text-green-600" /> Document Status</h4>
+                              <div className="space-y-3 text-xs">
+                                <div className="flex items-center gap-2"><span className={emp.documents.passport ? 'text-green-600' : 'text-red-500'}>{emp.documents.passport ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}</span><span>Passport Collected</span></div>
+                                <div className="flex items-center gap-2"><span className={emp.documents.yellowCard ? 'text-green-600' : ''}>{emp.documents.yellowCard ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <Clock className="h-4 w-4 text-amber-500" />}</span><span>Medical Result (GAMCA)</span></div>
+                                <div className="flex items-center gap-2"><span className="text-green-600"><CheckCircle2 className="h-4 w-4" /></span><span>MoLS Contract Signed</span></div>
+                                <div className="flex items-center gap-2"><span className="text-green-600"><CheckCircle2 className="h-4 w-4" /></span><span>Police Clearance</span></div>
+                                <div className="mt-3 pt-3 border-t border-slate-100">
+                                  <p className="font-semibold text-slate-700 mb-2">Agency-Department Bridge</p>
+                                  <div className="p-2 rounded-lg bg-blue-50 text-blue-700 text-xs">
+                                    {emp.vs.stage >= 3 ? (
+                                      <span className="flex items-center gap-1"><Send className="h-3.5 w-3.5" /> Notification sent: "Visa ready for {emp.name}. You may now book the flight."</span>
+                                    ) : (
+                                      <span>Ticket Dept waiting for visa approval</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {filtered.length === 0 && <div className="px-6 py-12 text-center text-slate-500 font-medium">No employees found matching the selected filters.</div>}
+      </div>
     </div>
   );
 }
