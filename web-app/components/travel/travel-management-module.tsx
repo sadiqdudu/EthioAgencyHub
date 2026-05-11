@@ -1042,17 +1042,21 @@ function VisaTab({ employees }: { employees: TravelEmployee[] }) {
   const stageNames = ['Document Collection', 'Portal Registration', 'Submitted to Embassy', 'Visa Approved/Stamped', 'Rejected/Correction'];
   const stageColors = ['bg-blue-100 text-blue-700', 'bg-purple-100 text-purple-700', 'bg-amber-100 text-amber-700', 'bg-emerald-100 text-emerald-700', 'bg-red-100 text-red-700'];
 
+  const [visaScans, setVisaScans] = useState<Record<string, string>>({}); // id -> "uploaded"
+
   const getDocStatus = (emp: TravelEmployee) => {
     const hasPassport = emp.documents.passport;
     const hasMedical = emp.documents.yellowCard;
-    if (!hasPassport) return { label: 'No Passport', color: 'text-red-600', urgent: true };
-    if (!hasMedical) return { label: 'Medical Pending', color: 'text-amber-600', urgent: false };
-    return { label: 'Docs Ready', color: 'text-green-600', urgent: false };
+    const medicalExpiring = hasMedical && Math.random() < 0.25; // simulate 25% expiring within 5 days
+    if (!hasPassport) return { label: 'No Passport', color: 'text-red-600', urgent: true, row: 'bg-red-50/40', medicalExpiring: false };
+    if (!hasMedical) return { label: 'Medical Pending', color: 'text-amber-600', urgent: false, row: 'bg-amber-50/30', medicalExpiring: false };
+    if (medicalExpiring) return { label: 'Medical Expiring Soon', color: 'text-orange-600', urgent: true, row: 'bg-orange-50/40', medicalExpiring: true };
+    return { label: 'Docs Ready', color: 'text-green-600', urgent: false, row: '', medicalExpiring: false };
   };
 
   const visaData = employees.map(emp => {
     const vs = visaStages[emp.id] || { embassy: embassies[Math.floor(Math.random() * embassies.length)], stage: Math.floor(Math.random() * 4) };
-    return { ...emp, vs, docStatus: getDocStatus(emp) };
+    return { ...emp, vs, docStatus: getDocStatus(emp), scanUploaded: !!visaScans[emp.id] };
   });
 
   const filtered = visaData.filter(e => {
@@ -1066,7 +1070,7 @@ function VisaTab({ employees }: { employees: TravelEmployee[] }) {
     total: filtered.length,
     submittedToday: filtered.filter(e => e.vs.stage >= 2).length,
     readyStamping: filtered.filter(e => e.vs.stage === 3).length,
-    urgent: filtered.filter(e => e.vs.stage < 2 && e.docStatus.urgent).length,
+    urgent: filtered.filter(e => (e.vs.stage < 2 && e.docStatus.urgent) || e.docStatus.medicalExpiring).length,
   };
 
   const toggleSelect = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -1217,7 +1221,7 @@ function VisaTab({ employees }: { employees: TravelEmployee[] }) {
                 const isUrgent = docStatus.urgent || emp.vs.stage < 2;
                 return (
                   <>
-                    <tr key={emp.id} className={`hover:bg-slate-50 transition-colors ${isUrgent && emp.vs.stage < 2 ? 'bg-red-50/40' : ''}`}>
+                    <tr key={emp.id} className={`hover:bg-slate-50 transition-colors ${docStatus.medicalExpiring ? 'bg-orange-50/50' : isUrgent && emp.vs.stage < 2 ? 'bg-red-50/40' : ''}`}>
                       <td className="px-4 py-3"><input type="checkbox" checked={selectedIds.includes(emp.id)} onChange={() => toggleSelect(emp.id)} className="h-4 w-4 rounded border-slate-300 text-brand-600" /></td>
                       <td className="px-4 py-3">
                         <button onClick={() => setExpandedId(isExpanded ? null : emp.id)} className="flex items-center gap-2 font-medium text-ink hover:text-brand-600">
@@ -1280,17 +1284,49 @@ function VisaTab({ employees }: { employees: TravelEmployee[] }) {
                               <h4 className="font-bold text-ink text-sm mb-3 flex items-center gap-2"><Shield className="h-4 w-4 text-green-600" /> Document Status</h4>
                               <div className="space-y-3 text-xs">
                                 <div className="flex items-center gap-2"><span className={emp.documents.passport ? 'text-green-600' : 'text-red-500'}>{emp.documents.passport ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}</span><span>Passport Collected</span></div>
-                                <div className="flex items-center gap-2"><span className={emp.documents.yellowCard ? 'text-green-600' : ''}>{emp.documents.yellowCard ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <Clock className="h-4 w-4 text-amber-500" />}</span><span>Medical Result (GAMCA)</span></div>
+                                <div className="flex items-center gap-2">
+                                  <span>{emp.documents.yellowCard ? (emp.docStatus.medicalExpiring ? <AlertCircle className="h-4 w-4 text-orange-500" /> : <CheckCircle2 className="h-4 w-4 text-green-600" />) : <Clock className="h-4 w-4 text-amber-500" />}</span>
+                                  <span className={emp.docStatus.medicalExpiring ? 'text-orange-600 font-medium' : ''}>Medical Result (GAMCA){emp.docStatus.medicalExpiring ? ' – Expiring within 5 days!' : ''}</span>
+                                </div>
                                 <div className="flex items-center gap-2"><span className="text-green-600"><CheckCircle2 className="h-4 w-4" /></span><span>MoLS Contract Signed</span></div>
                                 <div className="flex items-center gap-2"><span className="text-green-600"><CheckCircle2 className="h-4 w-4" /></span><span>Police Clearance</span></div>
-                                <div className="mt-3 pt-3 border-t border-slate-100">
-                                  <p className="font-semibold text-slate-700 mb-2">Agency-Department Bridge</p>
-                                  <div className="p-2 rounded-lg bg-blue-50 text-blue-700 text-xs">
-                                    {emp.vs.stage >= 3 ? (
-                                      <span className="flex items-center gap-1"><Send className="h-3.5 w-3.5" /> Notification sent: "Visa ready for {emp.name}. You may now book the flight."</span>
+
+                                {/* Visa Scan Upload */}
+                                {emp.vs.stage >= 3 && (
+                                  <div className="mt-2 pt-2 border-t border-slate-100">
+                                    <p className="font-semibold text-slate-700 mb-2 flex items-center gap-1"><FileText className="h-3.5 w-3.5 text-brand-600" /> Visa Document</p>
+                                    {emp.scanUploaded ? (
+                                      <div className="flex items-center gap-2 text-emerald-600">
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        <span className="font-medium">Visa scan uploaded & sent to In-Country Staff</span>
+                                      </div>
                                     ) : (
-                                      <span>Ticket Dept waiting for visa approval</span>
+                                      <div className="flex flex-wrap gap-2">
+                                        <button onClick={() => setVisaScans(prev => ({ ...prev, [emp.id]: 'uploaded' }))} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700">
+                                          <Upload className="h-3.5 w-3.5 inline-block mr-1" />Upload Visa Scan
+                                        </button>
+                                        <span className="text-xs text-slate-400 self-center">Not yet uploaded</span>
+                                      </div>
                                     )}
+                                  </div>
+                                )}
+
+                                {/* Agency-Department Bridge */}
+                                <div className="mt-2 pt-2 border-t border-slate-100">
+                                  <p className="font-semibold text-slate-700 mb-2">Agency-Department Bridge</p>
+                                  <div className="space-y-2">
+                                    <div className={`p-2 rounded-lg text-xs ${emp.vs.stage >= 3 ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
+                                      {emp.vs.stage >= 3 ? (
+                                        <div>
+                                          <span className="flex items-center gap-1"><Send className="h-3.5 w-3.5" /> <strong>Ticket Dept:</strong> "Visa ready for {emp.name}. You may now book the flight."</span>
+                                          {emp.scanUploaded && (
+                                            <span className="flex items-center gap-1 mt-1"><Globe className="h-3.5 w-3.5" /> <strong>In-Country Staff:</strong> Visa scan received. Preparing Safe Arrival report.</span>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <span>Ticket Dept waiting for visa approval</span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
