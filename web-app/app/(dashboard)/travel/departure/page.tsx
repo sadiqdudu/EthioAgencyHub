@@ -1,12 +1,5 @@
-﻿import { ModulePage } from '@/components/module-page';
+﻿import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return (
-    <ModulePage
-      title="Departure Preparation"
-      description="Complete pre-departure checklist and final readiness."
-      workflows={['Checklist', 'Document pack', 'Orientation', 'Airport handoff']}
-      actions={[{ label: 'Open workflow', href: '#' }]}
-    />
-  );
+  redirect('/travel?tab=preparation');
 }

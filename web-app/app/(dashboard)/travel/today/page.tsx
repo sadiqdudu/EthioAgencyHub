@@ -1,12 +1,5 @@
-﻿import { ModulePage } from '@/components/module-page';
+﻿import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return (
-    <ModulePage
-      title="Today Departures"
-      description="Monitor employees departing today."
-      workflows={['Ready list', 'Missing checklist', 'Flight manifest', 'Departure notes']}
-      actions={[{ label: 'Open workflow', href: '#' }]}
-    />
-  );
+  redirect('/travel?tab=departure');
 }

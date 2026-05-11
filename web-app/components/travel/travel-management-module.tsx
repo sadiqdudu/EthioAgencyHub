@@ -86,8 +86,11 @@ interface FlightSchedule {
   date: string;
 }
 
-export function TravelManagementModule() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'schedule' | 'tickets' | 'departure' | 'preparation' | 'arrival'>('overview');
+interface TravelModuleProps { initialTab?: string }
+
+export function TravelManagementModule({ initialTab }: TravelModuleProps) {
+  const tabMap: Record<string, any> = { overview: 'overview', schedule: 'schedule', tickets: 'tickets', departure: 'departure', preparation: 'preparation', arrival: 'arrival' };
+  const [activeTab, setActiveTab] = useState<any>(initialTab && tabMap[initialTab] ? tabMap[initialTab] : 'overview');
   const [employees, setEmployees] = useState<TravelEmployee[]>([]);
   const [bookings, setBookings] = useState<TicketBooking[]>([]);
   const [searchQuery, setSearchQuery] = useState('');

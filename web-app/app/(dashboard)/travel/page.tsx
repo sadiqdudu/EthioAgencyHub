@@ -1,7 +1,19 @@
 ﻿'use client';
 
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { TravelManagementModule } from '@/components/travel/travel-management-module';
 
-export default function Page() {
-  return <TravelManagementModule />;
+function TravelPageContent() {
+  const searchParams = useSearchParams();
+  const tab = searchParams.get('tab');
+  return <TravelManagementModule initialTab={tab as any} />;
+}
+
+export default function TravelPage() {
+  return (
+    <Suspense fallback={<TravelManagementModule />}>
+      <TravelPageContent />
+    </Suspense>
+  );
 }

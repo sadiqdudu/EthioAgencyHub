@@ -6,6 +6,7 @@ import {
   CalendarClock, 
   FileCheck2, 
   Plane, 
+  PlaneLanding,
   UsersRound,
   TrendingUp,
   CheckCircle2,
@@ -69,13 +70,14 @@ export const modules = [
     title: 'Travel', 
     href: '/travel', 
     icon: Plane, 
-    summary: 'Ticketing, departure readiness, schedules, and today views.',
+    summary: 'Command center, schedule, ticket booking, departures, prep checklist, arrival.',
     submenu: [
-      { title: 'Overview', href: '/travel', icon: Plane },
-      { title: 'Schedule', href: '/travel/schedule', icon: Clock },
-      { title: 'Tickets', href: '/travel/ticket', icon: FileText },
-      { title: "Today's Departures", href: '/travel/today', icon: TrendingUp },
-      { title: 'Departure Prep', href: '/travel/departure', icon: CheckCircle2 }
+      { title: 'Command Center', href: '/travel', icon: Plane },
+      { title: 'Schedule', href: '/travel?tab=schedule', icon: Clock },
+      { title: 'Tickets', href: '/travel?tab=tickets', icon: FileText },
+      { title: "Today's Departures", href: '/travel?tab=departure', icon: TrendingUp },
+      { title: 'Departure Prep', href: '/travel?tab=preparation', icon: CheckCircle2 },
+      { title: 'Arrival', href: '/travel?tab=arrival', icon: PlaneLanding }
     ]
   },
   { 

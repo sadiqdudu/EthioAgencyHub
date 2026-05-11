@@ -1,5 +1,5 @@
-﻿import { TravelScheduleCalendar } from '@/components/travel/schedule-calendar';
+﻿import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return <TravelScheduleCalendar />;
+  redirect('/travel?tab=schedule');
 }
