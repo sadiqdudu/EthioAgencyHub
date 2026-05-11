@@ -14,7 +14,7 @@ type Props = {
 
 export function Sidebar({ dict }: Props) {
   const { isOpen, toggle } = useSidebar();
-  const [expandedModules, setExpandedModules] = useState<string[]>(['Dashboard']);
+  const [expandedModules, setExpandedModules] = useState<string[]>(['Dashboard', 'Travel']);
 
   const toggleModule = (moduleTitle: string) => {
     setExpandedModules((prev) =>
