@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { CheckCircle2, ChevronLeft, ChevronRight, Save, RefreshCw, Clock, Video, Upload, X, Loader2, MessageCircle, Search, Plus, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Save, RefreshCw, Clock, Video, Upload, X, Loader2, MessageCircle, Search, Plus, AlertTriangle, User, Briefcase, Brain, FileText, CheckSquare } from 'lucide-react';
 import { SelectField, TextField } from '@/components/employees/form-fields';
 import { PassportScanner } from '@/components/employees/passport-scanner';
 import {
@@ -83,17 +83,51 @@ type RegistrationWizardProps = {
 
 export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps) {
   const [step, setStep] = useState(Math.max(0, Math.min(initialStep, steps.length - 1)));
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    personal: true,
-    skills: true,
-    assessment: true,
-    documents: true,
-    review: true,
-  });
+  const [activeTab, setActiveTab] = useState(0);
 
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section as keyof typeof prev] }));
+  const calculateProgress = () => {
+    let completed = 0;
+    const totalFields = 25;
+
+    if (personal.firstName.trim()) completed++;
+    if (personal.lastName.trim()) completed++;
+    if (personal.email.trim()) completed++;
+    if (personal.dateOfBirth) completed++;
+    if (personal.gender) completed++;
+    if (personal.maritalStatus) completed++;
+    if (personal.nationality) completed++;
+    if (personal.region) completed++;
+    if (personal.zone) completed++;
+    if (personal.contactPhone.trim()) completed++;
+    if (personal.alternatePhone.trim()) completed++;
+    if (personal.emergencyContact.trim()) completed++;
+    if (personal.emergencyPhone.trim()) completed++;
+    if (personal.nationalId.trim()) completed++;
+    if (personal.passportNumber.trim()) completed++;
+
+    if (skills.education) completed++;
+    if (skills.role) completed++;
+    if (skills.experience) completed++;
+    if (skills.destination) completed++;
+    if (skills.languages.length > 0) completed++;
+
+    if (Object.keys(psychology).length >= PSYCH_QUESTIONS.length) completed++;
+
+    if (docs.docPath) completed++;
+    if (docs.tgVideoId) completed++;
+
+    return Math.round((completed / totalFields) * 100);
   };
+
+  const progress = calculateProgress();
+
+  const tabItems = [
+    { id: 0, label: 'Personal', icon: User, section: 'personal' },
+    { id: 1, label: 'Skills', icon: Briefcase, section: 'skills' },
+    { id: 2, label: 'Assessment', icon: Brain, section: 'assessment' },
+    { id: 3, label: 'Documents', icon: FileText, section: 'documents' },
+    { id: 4, label: 'Review', icon: CheckSquare, section: 'review' },
+  ];
   const [personal, setPersonal] = useState<PersonalData>({
     firstName: '',
     lastName: '',
@@ -574,57 +608,75 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         </div>
       )}
 
-      {/* Accordion Section Headers */}
-      <div className="mb-6 space-y-2">
-        {/* Personal Section */}
-        <div onClick={() => toggleSection('personal')} className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${expandedSections.personal ? 'bg-brand-50 border-2 border-brand-200' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}>
-          <div className="flex items-center gap-3">
-            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${expandedSections.personal ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-600'}`}>1</span>
-            <span className={`font-semibold ${expandedSections.personal ? 'text-brand-800' : 'text-slate-600'}`}>Personal Information</span>
+      {/* Tabbed Layout with Progress Sidebar */}
+      <div className="flex gap-6">
+        {/* Progress Sidebar */}
+        <div className="w-64 flex-shrink-0">
+          {/* Progress Circle */}
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 text-center">
+            <div className="relative mx-auto mb-3 h-24 w-24">
+              <svg className="h-24 w-24 -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" strokeWidth="10" />
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#6366f1" strokeWidth="10" strokeDasharray={`${progress * 2.83} 283`} strokeLinecap="round" />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-2xl font-bold text-slate-800">{progress}%</span>
+              </div>
+            </div>
+            <p className="text-sm font-medium text-slate-600">Registration Complete</p>
           </div>
-          {expandedSections.personal ? <ChevronUp className="h-5 w-5 text-brand-600" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
+
+          {/* Tab Navigation */}
+          <div className="space-y-2">
+            {tabItems.map((tab) => {
+              const tabStart = tab.id * 20;
+              const tabEnd = (tab.id + 1) * 20;
+              const isCompleted = progress >= tabEnd;
+              const isCurrent = progress >= tabStart && progress < tabEnd;
+              const isActive = activeTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all ${
+                    isActive
+                      ? 'bg-brand-50 border-2 border-brand-300'
+                      : isCompleted
+                      ? 'bg-emerald-50 border border-emerald-200 hover:bg-emerald-100'
+                      : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                    isActive
+                      ? 'bg-brand-600 text-white'
+                      : isCompleted
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-slate-300 text-slate-600'
+                  }`}>
+                    {isCompleted ? '✓' : tab.id + 1}
+                  </span>
+                  <div className="flex-1">
+                    <p className={`text-sm font-semibold ${isActive ? 'text-brand-800' : 'text-slate-700'}`}>
+                      {tab.label}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {isCompleted ? 'Completed' : isCurrent ? 'In Progress' : 'Not started'}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Skills Section */}
-        <div onClick={() => toggleSection('skills')} className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${expandedSections.skills ? 'bg-brand-50 border-2 border-brand-200' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}>
-          <div className="flex items-center gap-3">
-            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${expandedSections.skills ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-600'}`}>2</span>
-            <span className={`font-semibold ${expandedSections.skills ? 'text-brand-800' : 'text-slate-600'}`}>Skills & Experience</span>
-          </div>
-          {expandedSections.skills ? <ChevronUp className="h-5 w-5 text-brand-600" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
-        </div>
-
-        {/* Assessment Section */}
-        <div onClick={() => toggleSection('assessment')} className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${expandedSections.assessment ? 'bg-brand-50 border-2 border-brand-200' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}>
-          <div className="flex items-center gap-3">
-            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${expandedSections.assessment ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-600'}`}>3</span>
-            <span className={`font-semibold ${expandedSections.assessment ? 'text-brand-800' : 'text-slate-600'}`}>Psychology Assessment</span>
-          </div>
-          {expandedSections.assessment ? <ChevronUp className="h-5 w-5 text-brand-600" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
-        </div>
-
-        {/* Documents Section */}
-        <div onClick={() => toggleSection('documents')} className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${expandedSections.documents ? 'bg-brand-50 border-2 border-brand-200' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}>
-          <div className="flex items-center gap-3">
-            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${expandedSections.documents ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-600'}`}>4</span>
-            <span className={`font-semibold ${expandedSections.documents ? 'text-brand-800' : 'text-slate-600'}`}>Documents & Media</span>
-          </div>
-          {expandedSections.documents ? <ChevronUp className="h-5 w-5 text-brand-600" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
-        </div>
-
-        {/* Review Section */}
-        <div onClick={() => toggleSection('review')} className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${expandedSections.review ? 'bg-brand-50 border-2 border-brand-200' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}>
-          <div className="flex items-center gap-3">
-            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${expandedSections.review ? 'bg-brand-600 text-white' : 'bg-slate-300 text-slate-600'}`}>5</span>
-            <span className={`font-semibold ${expandedSections.review ? 'text-brand-800' : 'text-slate-600'}`}>Review & Submit</span>
-          </div>
-          {expandedSections.review ? <ChevronUp className="h-5 w-5 text-brand-600" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
-        </div>
-      </div>
+        {/* Tab Content */}
+        <div className="flex-1">
 
       {/* All sections always visible - controlled by accordion headers */}
 
-      {expandedSections.personal && (
+      {activeTab === 0 && (
         <div className="space-y-5">
           {/* ── Compact Passport Scanner ── */}
           <PassportScanner onAutoFill={handlePassportAutoFill} />
@@ -829,7 +881,7 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         </div>
       )}
 
-      {expandedSections.assessment && (() => {
+      {activeTab === 2 && (() => {
         const answered = Object.keys(psychology).length;
         const total = PSYCH_QUESTIONS.length;
         const rawScore = Object.values(psychology).reduce((sum, v) => sum + v, 0);
@@ -901,7 +953,7 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         );
       })()}
 
-      {expandedSections.skills && (
+      {activeTab === 1 && (
         <div className="space-y-6 mt-4">
           <div className="grid gap-4 md:grid-cols-2">
             <SelectField
@@ -976,7 +1028,7 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
       )}
 
 
-      {expandedSections.documents && (
+      {activeTab === 3 && (
         <div className="space-y-5">
           {/* Photo & Documents */}
           <div>
@@ -1131,7 +1183,7 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
         </div>
       )}
 
-      {expandedSections.review && (
+      {activeTab === 4 && (
         <div className="space-y-6">
           <div className="rounded-2xl bg-brand-50 p-4">
             <h3 className="mb-3 font-semibold text-ink">👤 Personal Information</h3>
@@ -1222,6 +1274,8 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
           </div>
         </div>
       )}
+        </div>
+      </div>
 
       {/* Operations - Bottom Navigation */}
       <div className="mt-8 border-t border-slate-200 pt-6">
