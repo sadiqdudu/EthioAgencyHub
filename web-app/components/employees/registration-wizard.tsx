@@ -85,49 +85,6 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
   const [step, setStep] = useState(Math.max(0, Math.min(initialStep, steps.length - 1)));
   const [activeTab, setActiveTab] = useState(0);
 
-  const calculateProgress = () => {
-    let completed = 0;
-    const totalFields = 25;
-
-    if (personal.firstName.trim()) completed++;
-    if (personal.lastName.trim()) completed++;
-    if (personal.email.trim()) completed++;
-    if (personal.dateOfBirth) completed++;
-    if (personal.gender) completed++;
-    if (personal.maritalStatus) completed++;
-    if (personal.nationality) completed++;
-    if (personal.region) completed++;
-    if (personal.zone) completed++;
-    if (personal.contactPhone.trim()) completed++;
-    if (personal.alternatePhone.trim()) completed++;
-    if (personal.emergencyContact.trim()) completed++;
-    if (personal.emergencyPhone.trim()) completed++;
-    if (personal.nationalId.trim()) completed++;
-    if (personal.passportNumber.trim()) completed++;
-
-    if (skills.education) completed++;
-    if (skills.role) completed++;
-    if (skills.experience) completed++;
-    if (skills.destination) completed++;
-    if (skills.languages.length > 0) completed++;
-
-    if (Object.keys(psychology).length >= PSYCH_QUESTIONS.length) completed++;
-
-    if (docs.docPath) completed++;
-    if (docs.tgVideoId) completed++;
-
-    return Math.round((completed / totalFields) * 100);
-  };
-
-  const progress = calculateProgress();
-
-  const tabItems = [
-    { id: 0, label: 'Personal', icon: User, section: 'personal' },
-    { id: 1, label: 'Skills', icon: Briefcase, section: 'skills' },
-    { id: 2, label: 'Assessment', icon: Brain, section: 'assessment' },
-    { id: 3, label: 'Documents', icon: FileText, section: 'documents' },
-    { id: 4, label: 'Review', icon: CheckSquare, section: 'review' },
-  ];
   const [personal, setPersonal] = useState<PersonalData>({
     firstName: '',
     lastName: '',
@@ -183,6 +140,45 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
   const [searchedEmployees, setSearchedEmployees] = useState<any[]>([]);
   const [searchingEmployees, setSearchingEmployees] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const calculateProgress = () => {
+    let completed = 0;
+    const totalFields = 25;
+    if (personal.firstName.trim()) completed++;
+    if (personal.lastName.trim()) completed++;
+    if (personal.email.trim()) completed++;
+    if (personal.dateOfBirth) completed++;
+    if (personal.gender) completed++;
+    if (personal.maritalStatus) completed++;
+    if (personal.nationality) completed++;
+    if (personal.region) completed++;
+    if (personal.zone) completed++;
+    if (personal.contactPhone.trim()) completed++;
+    if (personal.alternatePhone.trim()) completed++;
+    if (personal.emergencyContact.trim()) completed++;
+    if (personal.emergencyPhone.trim()) completed++;
+    if (personal.nationalId.trim()) completed++;
+    if (personal.passportNumber.trim()) completed++;
+    if (skills.education) completed++;
+    if (skills.role) completed++;
+    if (skills.experience) completed++;
+    if (skills.destination) completed++;
+    if (skills.languages.length > 0) completed++;
+    if (Object.keys(psychology).length >= PSYCH_QUESTIONS.length) completed++;
+    if (docs.docPath) completed++;
+    if (docs.tgVideoId) completed++;
+    return Math.round((completed / totalFields) * 100);
+  };
+
+  const progress = calculateProgress();
+
+  const tabItems = [
+    { id: 0, label: 'Personal', icon: User, section: 'personal' },
+    { id: 1, label: 'Skills', icon: Briefcase, section: 'skills' },
+    { id: 2, label: 'Assessment', icon: Brain, section: 'assessment' },
+    { id: 3, label: 'Documents', icon: FileText, section: 'documents' },
+    { id: 4, label: 'Review', icon: CheckSquare, section: 'review' },
+  ];
 
   useEffect(() => {
     setStep(Math.max(0, Math.min(initialStep, steps.length - 1)));
