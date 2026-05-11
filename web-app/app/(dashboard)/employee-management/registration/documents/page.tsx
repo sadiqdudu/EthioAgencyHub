@@ -1,9 +1,5 @@
-import { RegistrationWizard } from '@/components/employees/registration-wizard';
+import { redirect } from 'next/navigation';
 
-export default function RegistrationDocumentsPage() {
-  return (
-    <div id="wizard">
-      <RegistrationWizard initialStep={2} />
-    </div>
-  );
+export default function Page() {
+  redirect('/employee-management/registration');
 }

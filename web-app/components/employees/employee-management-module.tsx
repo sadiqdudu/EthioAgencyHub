@@ -208,7 +208,7 @@ export function EmployeeManagementModule() {
             </div>
             
             <Link
-              href="/employee-management/registration/personal"
+              href="/employee-management/registration"
               className="flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-700 shadow-md shadow-brand-600/20 transition-all hover:shadow-lg"
             >
               <Plus className="h-5 w-5" />
@@ -338,7 +338,7 @@ export function EmployeeManagementModule() {
         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Quick Actions</h3>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Link
-            href="/employee-management/registration/personal"
+            href="/employee-management/registration"
             className="group rounded-2xl border border-slate-200 bg-white p-6 hover:border-brand-300 hover:bg-brand-50/40 transition-all shadow-sm hover:shadow-md"
           >
             <div className="flex items-center justify-between">
