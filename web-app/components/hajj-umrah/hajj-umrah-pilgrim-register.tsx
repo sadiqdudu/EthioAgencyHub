@@ -75,12 +75,23 @@ interface PilgrimFormData {
   groupId: string;
 }
 
-export function HajjUmrahPilgrimRegister() {
+interface HajjUmrahPilgrimRegisterProps {
+  openNewRegistration?: boolean;
+}
+
+export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUmrahPilgrimRegisterProps) {
   const router = useRouter();
   const [pilgrims, setPilgrims] = useState<Pilgrim[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [telegramConfigured, setTelegramConfigured] = useState(true);
   const [whatsappConfigured, setWhatsappConfigured] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(openNewRegistration);
+
+  useEffect(() => {
+    if (openNewRegistration) {
+      setIsModalOpen(true);
+    }
+  }, [openNewRegistration]);
 
   useEffect(() => {
     checkTelegramConfig();
@@ -119,7 +130,6 @@ export function HajjUmrahPilgrimRegister() {
       console.error('WhatsApp notification error:', error);
     }
   };
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedPilgrim, setSelectedPilgrim] = useState<Pilgrim | null>(null);

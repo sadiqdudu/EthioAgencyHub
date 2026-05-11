@@ -142,7 +142,7 @@ export function HajjUmrahManagementModule() {
   return (
     <div className="space-y-6">
       {activeView === 'register' ? (
-        <HajjUmrahPilgrimRegister />
+        <HajjUmrahPilgrimRegister openNewRegistration={true} />
       ) : (
         <>
       {/* Header */}
