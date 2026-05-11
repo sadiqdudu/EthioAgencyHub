@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, Download, Eye, Globe, User, Calendar, Briefcase, ChevronLeft, ChevronRight, X, CheckCircle2 } from 'lucide-react';
+import { Search, Filter, Download, Eye, Globe, User, Calendar, Briefcase, ChevronLeft, ChevronRight, X, CheckCircle2, FileText, Users, FileCheck, StickyNote, Phone, Mail, MapPin, Award, Languages } from 'lucide-react';
 import Link from 'next/link';
 
 interface Employee {
@@ -26,6 +26,8 @@ export function EmployeeProfilesComponent() {
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [profileTab, setProfileTab] = useState<'personal' | 'skills' | 'documents' | 'notes'>('personal');
 
   useEffect(() => {
     fetchEmployees();
@@ -315,13 +317,13 @@ export function EmployeeProfilesComponent() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Link 
-                        href={`/employee-management/${emp.id}`} 
+                      <button 
+                        onClick={() => { setSelectedEmployee(emp); setProfileTab('personal'); }}
                         className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-brand-600 hover:bg-brand-50 transition-colors"
                       >
                         <Eye className="h-3.5 w-3.5" />
-                        Details
-                      </Link>
+                        View Profile
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -330,6 +332,224 @@ export function EmployeeProfilesComponent() {
           </table>
         </div>
       </div>
+
+      {/* Employee Profile Modal - Tabbed Folder Style */}
+      {selectedEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-xl">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-6 py-4">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-lg">
+                  {selectedEmployee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-ink">{selectedEmployee.name}</h3>
+                  <p className="text-sm text-slate-500">{selectedEmployee.role || 'Employee'} • {selectedEmployee.destination || 'Open'}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedEmployee(null)} className="rounded-full p-2 hover:bg-slate-200">
+                <X className="h-5 w-5 text-slate-500" />
+              </button>
+            </div>
+
+            {/* Tabbed Folder Style Tabs */}
+            <div className="border-b border-slate-200 bg-slate-100 px-6 pt-4">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setProfileTab('personal')}
+                  className={`px-5 py-2.5 text-sm font-bold rounded-t-xl transition-all ${
+                    profileTab === 'personal'
+                      ? 'bg-white text-brand-700 shadow-sm border-t border-x border-slate-200'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <User className="h-4 w-4 inline-block mr-2" />
+                  Personal
+                </button>
+                <button
+                  onClick={() => setProfileTab('skills')}
+                  className={`px-5 py-2.5 text-sm font-bold rounded-t-xl transition-all ${
+                    profileTab === 'skills'
+                      ? 'bg-white text-brand-700 shadow-sm border-t border-x border-slate-200'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Briefcase className="h-4 w-4 inline-block mr-2" />
+                  Skills
+                </button>
+                <button
+                  onClick={() => setProfileTab('documents')}
+                  className={`px-5 py-2.5 text-sm font-bold rounded-t-xl transition-all ${
+                    profileTab === 'documents'
+                      ? 'bg-white text-brand-700 shadow-sm border-t border-x border-slate-200'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <FileCheck className="h-4 w-4 inline-block mr-2" />
+                  Documents
+                </button>
+                <button
+                  onClick={() => setProfileTab('notes')}
+                  className={`px-5 py-2.5 text-sm font-bold rounded-t-xl transition-all ${
+                    profileTab === 'notes'
+                      ? 'bg-white text-brand-700 shadow-sm border-t border-x border-slate-200'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <StickyNote className="h-4 w-4 inline-block mr-2" />
+                  Notes
+                </button>
+              </div>
+            </div>
+
+            {/* Tab Content */}
+            <div className="overflow-y-auto p-6" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+              {profileTab === 'personal' && (
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 p-5">
+                    <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
+                      <User className="h-5 w-5 text-brand-600" />
+                      Personal Information
+                    </h4>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between"><span className="text-slate-500">Name:</span><span className="font-medium">{selectedEmployee.name}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Email:</span><span className="font-medium">{selectedEmployee.email || '-'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Phone:</span><span className="font-medium">-</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Status:</span><span className="font-medium">{selectedEmployee.status.replace(/_/g, ' ')}</span></div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 p-5">
+                    <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-brand-600" />
+                      Location & Emergency
+                    </h4>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between"><span className="text-slate-500">Region:</span><span className="font-medium">-</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">City:</span><span className="font-medium">-</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Emergency Contact:</span><span className="font-medium">-</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Emergency Phone:</span><span className="font-medium">-</span></div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 p-5">
+                    <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-brand-600" />
+                      Identity Documents
+                    </h4>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between"><span className="text-slate-500">National ID:</span><span className="font-medium">-</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Passport Number:</span><span className="font-medium">-</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Passport Expiry:</span><span className="font-medium">-</span></div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 p-5">
+                    <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-brand-600" />
+                      Registration Info
+                    </h4>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between"><span className="text-slate-500">Created:</span><span className="font-medium">{new Date(selectedEmployee.createdAt).toLocaleDateString()}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Destination:</span><span className="font-medium">{selectedEmployee.destination || 'Open'}</span></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {profileTab === 'skills' && (
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 p-5">
+                    <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
+                      <Award className="h-5 w-5 text-brand-600" />
+                      Education & Experience
+                    </h4>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between"><span className="text-slate-500">Education:</span><span className="font-medium">-</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Experience:</span><span className="font-medium">-</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Job Role:</span><span className="font-medium">{selectedEmployee.role || '-'}</span></div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 p-5">
+                    <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
+                      <Languages className="h-5 w-5 text-brand-600" />
+                      Languages
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between"><span className="text-slate-500">Amharic:</span><span className="font-medium">Native</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">English:</span><span className="font-medium">-</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Arabic:</span><span className="font-medium">-</span></div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 p-5 md:col-span-2">
+                    <h4 className="font-bold text-ink mb-4">Additional Skills</h4>
+                    <p className="text-sm text-slate-500">-</p>
+                  </div>
+                </div>
+              )}
+
+              {profileTab === 'documents' && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-slate-200 p-5">
+                    <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
+                      <FileCheck className="h-5 w-5 text-brand-600" />
+                      Document Status
+                    </h4>
+                    <div className="space-y-3">
+                      {['Passport', 'Visa', 'Health Certificate', 'Insurance', 'Photo', 'Consent Form'].map((doc) => (
+                        <div key={doc} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                          <span className="font-medium text-sm">{doc}</span>
+                          <span className="px-2 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-700">Pending</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <button className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700">
+                      Upload Documents
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {profileTab === 'notes' && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-slate-200 p-5">
+                    <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
+                      <StickyNote className="h-5 w-5 text-brand-600" />
+                      Internal Notes
+                    </h4>
+                    <textarea 
+                      className="w-full rounded-xl border border-slate-300 p-3 text-sm" 
+                      rows={6} 
+                      placeholder="Add notes about this employee..."
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <button className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700">
+                      Save Note
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
+              <button onClick={() => setSelectedEmployee(null)} className="px-5 py-2.5 text-sm font-bold text-slate-600">
+                Close
+              </button>
+              <div className="flex gap-3">
+                <button className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100">
+                  <Download className="h-4 w-4 inline-block mr-2" />
+                  Download CV
+                </button>
+                <button className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700">
+                  Edit Profile
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pagination */}
       <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
