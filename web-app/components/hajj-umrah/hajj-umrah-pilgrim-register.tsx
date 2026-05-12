@@ -557,20 +557,20 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
         ))}
       </div>
 
-      {/* View/Edit Modal */}
-      {(isModalOpen || isViewModalOpen) && selectedPilgrim && (
+      {/* View/Edit/New Modal */}
+      {isModalOpen && (isViewModalOpen ? selectedPilgrim : true) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl">
             <div className="sticky top-0 border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold ${
-                  selectedPilgrim.destination === 'Hajj' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
+                  selectedPilgrim ? (selectedPilgrim?.destination === 'Hajj' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600') : 'bg-purple-100 text-purple-600'
                 }`}>
-                  {selectedPilgrim.firstName[0]}{selectedPilgrim.lastName[0]}
+                  {selectedPilgrim ? (selectedPilgrim?.firstName?.[0] || '') + (selectedPilgrim?.lastName?.[0] || '') : 'NP'}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-ink">{selectedPilgrim.firstName} {selectedPilgrim.lastName}</h3>
-                  <p className="text-sm text-slate-500">{selectedPilgrim.passportNumber}</p>
+                  <h3 className="text-xl font-bold text-ink">{selectedPilgrim ? `${selectedPilgrim?.firstName} ${selectedPilgrim?.lastName}` : 'New Pilgrim Registration'}</h3>
+                  <p className="text-sm text-slate-500">{selectedPilgrim ? selectedPilgrim?.passportNumber : 'Fill in the details below'}</p>
                 </div>
               </div>
               <button 
@@ -617,7 +617,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                           <label className="block text-sm font-medium text-slate-700 mb-1">First Name *</label>
                           <input 
                             type="text" 
-                            value={isModalOpen ? formData.firstName : selectedPilgrim.firstName}
+                            value={isModalOpen ? formData.firstName : selectedPilgrim?.firstName}
                             onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                             disabled={!isModalOpen}
                             className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -627,7 +627,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                           <label className="block text-sm font-medium text-slate-700 mb-1">Last Name *</label>
                           <input 
                             type="text" 
-                            value={isModalOpen ? formData.lastName : selectedPilgrim.lastName}
+                            value={isModalOpen ? formData.lastName : selectedPilgrim?.lastName}
                             onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                             disabled={!isModalOpen}
                             className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -638,7 +638,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                         <div>
                           <label className="block text-sm font-medium text-slate-700 mb-1">Gender</label>
                           <select 
-                            value={isModalOpen ? formData.gender : selectedPilgrim.gender}
+                            value={isModalOpen ? formData.gender : selectedPilgrim?.gender}
                             onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
                             disabled={!isModalOpen}
                             className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -651,7 +651,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                           <label className="block text-sm font-medium text-slate-700 mb-1">Date of Birth *</label>
                           <input 
                             type="date" 
-                            value={isModalOpen ? formData.dateOfBirth : selectedPilgrim.dateOfBirth}
+                            value={isModalOpen ? formData.dateOfBirth : selectedPilgrim?.dateOfBirth}
                             onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                             disabled={!isModalOpen}
                             className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -663,7 +663,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                           <label className="block text-sm font-medium text-slate-700 mb-1">Place of Birth</label>
                           <input 
                             type="text" 
-                            value={isModalOpen ? formData.placeOfBirth : selectedPilgrim.placeOfBirth}
+                            value={isModalOpen ? formData.placeOfBirth : (selectedPilgrim?.placeOfBirth || '')}
                             onChange={(e) => setFormData({ ...formData, placeOfBirth: e.target.value })}
                             disabled={!isModalOpen}
                             className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -673,7 +673,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                           <label className="block text-sm font-medium text-slate-700 mb-1">Nationality</label>
                           <input 
                             type="text" 
-                            value={isModalOpen ? formData.nationality : selectedPilgrim.nationality}
+                            value={isModalOpen ? formData.nationality : selectedPilgrim?.nationality}
                             onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
                             disabled={!isModalOpen}
                             className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -690,7 +690,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                         <label className="block text-sm font-medium text-slate-700 mb-1">Phone *</label>
                         <input 
                           type="tel" 
-                          value={isModalOpen ? formData.phone : selectedPilgrim.phone}
+                          value={isModalOpen ? formData.phone : (selectedPilgrim?.phone || '')}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           disabled={!isModalOpen}
                           className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -700,7 +700,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                         <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
                         <input 
                           type="email" 
-                          value={isModalOpen ? formData.email : selectedPilgrim.email || ''}
+                          value={isModalOpen ? formData.email : selectedPilgrim?.email || ''}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           disabled={!isModalOpen}
                           className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -710,7 +710,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                         <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
                         <input 
                           type="text" 
-                          value={isModalOpen ? formData.address : selectedPilgrim.address}
+                          value={isModalOpen ? formData.address : selectedPilgrim?.address}
                           onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                           disabled={!isModalOpen}
                           className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -721,7 +721,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                           <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
                           <input 
                             type="text" 
-                            value={isModalOpen ? formData.city : selectedPilgrim.city}
+                            value={isModalOpen ? formData.city : selectedPilgrim?.city}
                             onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                             disabled={!isModalOpen}
                             className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -731,7 +731,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                           <label className="block text-sm font-medium text-slate-700 mb-1">Region</label>
                           <input 
                             type="text" 
-                            value={isModalOpen ? formData.region : selectedPilgrim.region}
+                            value={isModalOpen ? formData.region : selectedPilgrim?.region}
                             onChange={(e) => setFormData({ ...formData, region: e.target.value })}
                             disabled={!isModalOpen}
                             className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -748,7 +748,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                         <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
                         <input 
                           type="text" 
-                          value={isModalOpen ? formData.emergencyContactName : selectedPilgrim.emergencyContactName}
+                          value={isModalOpen ? formData.emergencyContactName : selectedPilgrim?.emergencyContactName}
                           onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })}
                           disabled={!isModalOpen}
                           className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -758,7 +758,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                         <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
                         <input 
                           type="tel" 
-                          value={isModalOpen ? formData.emergencyContactPhone : selectedPilgrim.emergencyContactPhone}
+                          value={isModalOpen ? formData.emergencyContactPhone : selectedPilgrim?.emergencyContactPhone}
                           onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })}
                           disabled={!isModalOpen}
                           className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -768,7 +768,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                         <label className="block text-sm font-medium text-slate-700 mb-1">Relation</label>
                         <input 
                           type="text" 
-                          value={isModalOpen ? formData.emergencyContactRelation : selectedPilgrim.emergencyContactRelation}
+                          value={isModalOpen ? formData.emergencyContactRelation : selectedPilgrim?.emergencyContactRelation}
                           onChange={(e) => setFormData({ ...formData, emergencyContactRelation: e.target.value })}
                           disabled={!isModalOpen}
                           className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -783,7 +783,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Destination</label>
                         <select 
-                          value={isModalOpen ? formData.destination : selectedPilgrim.destination}
+                          value={isModalOpen ? formData.destination : selectedPilgrim?.destination}
                           onChange={(e) => setFormData({ ...formData, destination: e.target.value as any })}
                           disabled={!isModalOpen}
                           className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -795,7 +795,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Season</label>
                         <select 
-                          value={isModalOpen ? formData.season : selectedPilgrim.season}
+                          value={isModalOpen ? formData.season : selectedPilgrim?.season}
                           onChange={(e) => setFormData({ ...formData, season: e.target.value })}
                           disabled={!isModalOpen}
                           className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -808,7 +808,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Group</label>
                         <select 
-                          value={isModalOpen ? formData.groupId : selectedPilgrim.groupId || ''}
+                          value={isModalOpen ? formData.groupId : selectedPilgrim?.groupId || ''}
                           onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
                           disabled={!isModalOpen}
                           className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm disabled:bg-slate-100"
@@ -836,7 +836,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                         <label className="block text-sm font-medium text-purple-700 mb-1">Passport Number *</label>
                         <input 
                           type="text" 
-                          value={isModalOpen ? formData.passportNumber : selectedPilgrim.passportNumber}
+                          value={isModalOpen ? formData.passportNumber : selectedPilgrim?.passportNumber}
                           onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
                           disabled={!isModalOpen}
                           className="w-full rounded-xl border border-purple-200 px-4 py-2.5 text-sm disabled:bg-purple-100"
@@ -848,7 +848,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                           <label className="block text-sm font-medium text-purple-700 mb-1">Issue Date</label>
                           <input 
                             type="date" 
-                            value={isModalOpen ? formData.passportIssueDate : selectedPilgrim.passportIssueDate}
+                            value={isModalOpen ? formData.passportIssueDate : selectedPilgrim?.passportIssueDate}
                             onChange={(e) => setFormData({ ...formData, passportIssueDate: e.target.value })}
                             disabled={!isModalOpen}
                             className="w-full rounded-xl border border-purple-200 px-4 py-2.5 text-sm disabled:bg-purple-100"
@@ -858,7 +858,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                           <label className="block text-sm font-medium text-purple-700 mb-1">Expiry Date *</label>
                           <input 
                             type="date" 
-                            value={isModalOpen ? formData.passportExpiryDate : selectedPilgrim.passportExpiryDate}
+                            value={isModalOpen ? formData.passportExpiryDate : selectedPilgrim?.passportExpiryDate}
                             onChange={(e) => setFormData({ ...formData, passportExpiryDate: e.target.value })}
                             disabled={!isModalOpen}
                             className="w-full rounded-xl border border-purple-200 px-4 py-2.5 text-sm disabled:bg-purple-100"
@@ -869,7 +869,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                         <label className="block text-sm font-medium text-purple-700 mb-1">Issue Place</label>
                         <input 
                           type="text" 
-                          value={isModalOpen ? formData.passportIssuePlace : selectedPilgrim.passportIssuePlace}
+                          value={isModalOpen ? formData.passportIssuePlace : selectedPilgrim?.passportIssuePlace}
                           onChange={(e) => setFormData({ ...formData, passportIssuePlace: e.target.value })}
                           disabled={!isModalOpen}
                           className="w-full rounded-xl border border-purple-200 px-4 py-2.5 text-sm disabled:bg-purple-100"
@@ -892,7 +892,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                         accept="image/*"
                         className="hidden"
                         ref={(el) => { if (el) fileInputRefs.current['photo'] = el; }}
-                        onChange={(e) => e.target.files?.[0] && handleDocumentUpload(selectedPilgrim.id, 'photo', e.target.files[0])}
+                        onChange={(e) => e.target.files?.[0] && selectedPilgrim && handleDocumentUpload(selectedPilgrim.id, 'photo', e.target.files[0])}
                       />
                       <button 
                         onClick={() => fileInputRefs.current['photo']?.click()}
@@ -915,7 +915,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                     { type: 'insurance', label: 'Travel Insurance', icon: Briefcase, required: true },
                     { type: 'consent', label: 'Consent Form', icon: FileText, required: false },
                   ].map((doc) => {
-                    const pilgrimDoc = selectedPilgrim.documents.find(d => d.type === doc.type);
+                    const pilgrimDoc = selectedPilgrim?.documents?.find(d => d.type === doc.type);
                     const progress = documentUploadProgress[doc.type] || 0;
                     const isCurrentlyUploading = progress > 0 && progress < 100;
 
@@ -978,7 +978,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                                 accept=".pdf,.jpg,.jpeg,.png"
                                 className="hidden"
                                 ref={(el) => { if (el) fileInputRefs.current[doc.type] = el; }}
-                                onChange={(e) => e.target.files?.[0] && handleDocumentUpload(selectedPilgrim.id, doc.type, e.target.files[0])}
+                                onChange={(e) => e.target.files?.[0] && selectedPilgrim && handleDocumentUpload(selectedPilgrim.id, doc.type, e.target.files[0])}
                               />
                               <button 
                                 onClick={() => fileInputRefs.current[doc.type]?.click()}
@@ -1029,7 +1029,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
               </div>
               <h3 className="text-xl font-bold text-ink mb-2">Delete Pilgrim?</h3>
               <p className="text-slate-600 mb-6">
-                Are you sure you want to delete <strong>{selectedPilgrim.firstName} {selectedPilgrim.lastName}</strong>? 
+                Are you sure you want to delete <strong>{selectedPilgrim?.firstName} {selectedPilgrim?.lastName}</strong>? 
                 This action cannot be undone.
               </p>
               <div className="flex gap-3 justify-center">
@@ -1040,7 +1040,7 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                   Cancel
                 </button>
                 <button 
-                  onClick={() => handleDelete(selectedPilgrim.id)}
+                  onClick={() => selectedPilgrim && handleDelete(selectedPilgrim.id)}
                   className="px-5 py-2.5 rounded-xl bg-red-600 text-sm font-semibold text-white hover:bg-red-700"
                 >
                   Delete
