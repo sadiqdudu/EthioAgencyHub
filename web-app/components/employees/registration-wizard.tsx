@@ -676,205 +676,84 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
 
       {activeTab === 0 && (
         <div className="space-y-5">
-          {/* ── Compact Passport Scanner ── */}
           <PassportScanner onAutoFill={handlePassportAutoFill} />
 
-          {/* ── Personal Information ── */}
-          <div>
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Personal Information</h4>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+              <h4 className="font-bold text-ink">Personal Identity</h4>
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                label="First Name *"
-                value={personal.firstName}
-                onChange={(v) => setPersonal({ ...personal, firstName: v })}
-                required
-              />
-              <TextField
-                label="Last Name *"
-                value={personal.lastName}
-                onChange={(v) => setPersonal({ ...personal, lastName: v })}
-                required
-              />
-              <TextField
-                label="Email"
-                type="email"
-                value={personal.email}
-                onChange={(v) => setPersonal({ ...personal, email: v })}
-              />
-              <TextField
-                label="Date of Birth"
-                type="date"
-                value={personal.dateOfBirth}
-                onChange={(v) => setPersonal({ ...personal, dateOfBirth: v })}
-              />
-              <SelectField
-                label="Gender"
-                value={personal.gender}
-                onChange={(v) => setPersonal({ ...personal, gender: v })}
-                options={genders}
-              />
-              <SelectField
-                label="Marital Status"
-                value={personal.maritalStatus}
-                onChange={(v) => setPersonal({ ...personal, maritalStatus: v })}
-                options={maritalStatus}
-              />
-              <SelectField
-                label="Nationality"
-                value={personal.nationality}
-                onChange={(v) => setPersonal({ ...personal, nationality: v })}
-                options={countries}
-              />
-              <SelectField
-                label="Region"
-                value={personal.region}
-                onChange={(v) => setPersonal({ ...personal, region: v, zone: '' })}
-                options={ethiopianRegions.map((r) => r.region)}
-              />
-              {personal.region && (
-                <SelectField
-                  label="Zone / Woreda"
-                  value={personal.zone}
-                  onChange={(v) => setPersonal({ ...personal, zone: v })}
-                  options={zones}
-                />
-              )}
+              <TextField label="First Name *" value={personal.firstName} onChange={(v) => setPersonal({ ...personal, firstName: v })} required placeholder="e.g., Abebe" />
+              <TextField label="Last Name *" value={personal.lastName} onChange={(v) => setPersonal({ ...personal, lastName: v })} required placeholder="e.g., Kebede" />
+              <TextField label="Father's Name (as in passport)" value={personal.fatherName} onChange={(v) => setPersonal({ ...personal, fatherName: v })} placeholder="e.g., Kebede Lemma" />
+              <TextField label="Mother's Name (as in passport)" value={personal.motherName} onChange={(v) => setPersonal({ ...personal, motherName: v })} placeholder="e.g., Abebech Alemu" />
+              <TextField label="Date of Birth *" type="date" value={personal.dateOfBirth} onChange={(v) => setPersonal({ ...personal, dateOfBirth: v })} required />
+              <SelectField label="Gender" value={personal.gender} onChange={(v) => setPersonal({ ...personal, gender: v })} options={genders} />
+              <SelectField label="Marital Status" value={personal.maritalStatus} onChange={(v) => setPersonal({ ...personal, maritalStatus: v })} options={maritalStatus} />
+              <SelectField label="Nationality" value={personal.nationality} onChange={(v) => setPersonal({ ...personal, nationality: v })} options={countries} />
             </div>
           </div>
 
-          {/* ── Contact Details ── */}
-          <div>
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Contact Details</h4>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold">2</span>
+              <h4 className="font-bold text-ink">Contact Details</h4>
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                label="Contact Phone *"
-                type="tel"
-                value={personal.contactPhone}
-                onChange={(v) => setPersonal({ ...personal, contactPhone: v })}
-                required
-              />
-              <TextField
-                label="Alternate Phone"
-                type="tel"
-                value={personal.alternatePhone}
-                onChange={(v) => setPersonal({ ...personal, alternatePhone: v })}
-              />
-              <TextField
-                label="Emergency Contact Name *"
-                value={personal.emergencyContact}
-                onChange={(v) => setPersonal({ ...personal, emergencyContact: v })}
-                required
-              />
-              <TextField
-                label="Emergency Contact Phone *"
-                type="tel"
-                value={personal.emergencyPhone}
-                onChange={(v) => setPersonal({ ...personal, emergencyPhone: v })}
-                required
-              />
+              <TextField label="Email" type="email" value={personal.email} onChange={(v) => setPersonal({ ...personal, email: v })} placeholder="e.g., abebe@email.com" />
+              <TextField label="Contact Phone *" type="tel" value={personal.contactPhone} onChange={(v) => setPersonal({ ...personal, contactPhone: v })} required placeholder="e.g., +251911234567" />
+              <TextField label="Alternate Phone" type="tel" value={personal.alternatePhone} onChange={(v) => setPersonal({ ...personal, alternatePhone: v })} placeholder="e.g., +251912345678" />
             </div>
           </div>
 
-          {/* ── Official IDs & Passport ── */}
-          <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50 p-4">
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-blue-500">📋 Official IDs & Passport</h4>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold">3</span>
+              <h4 className="font-bold text-ink">Address</h4>
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                label="National ID Number"
-                value={personal.nationalId}
-                onChange={(v) => setPersonal({ ...personal, nationalId: v })}
-                placeholder="e.g., 1234567890"
-              />
-              <TextField
-                label="Labor ID Number"
-                value={personal.laborId}
-                onChange={(v) => setPersonal({ ...personal, laborId: v })}
-                placeholder="e.g., LAB-2024-001"
-              />
-              <TextField
-                label="Passport Number"
-                value={personal.passportNumber}
-                onChange={(v) => setPersonal({ ...personal, passportNumber: v })}
-                placeholder="e.g., ET1234567"
-              />
-              <TextField
-                label="Passport Expiry Date"
-                type="date"
-                value={personal.passportExpiryDate}
-                onChange={(v) => setPersonal({ ...personal, passportExpiryDate: v })}
-              />
+              <SelectField label="Region *" value={personal.region} onChange={(v) => setPersonal({ ...personal, region: v, zone: '' })} options={ethiopianRegions.map((r) => r.region)} />
+              {personal.region && <SelectField label="Zone / Woreda" value={personal.zone} onChange={(v) => setPersonal({ ...personal, zone: v })} options={zones} />}
             </div>
           </div>
 
-          {/* ── Family Information ── */}
-          <div className="rounded-2xl border border-purple-100 bg-gradient-to-r from-purple-50 to-pink-50 p-4">
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-purple-500">👨‍👩‍👧 Family Information</h4>
+          <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">4</span>
+              <h4 className="font-bold text-blue-800">Passport &amp; Official IDs</h4>
+            </div>
+            <div className="p-3 rounded-xl bg-blue-100/50 border border-blue-200 text-xs text-blue-700 mb-3">Enter details exactly as they appear on the official documents</div>
             <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                label="Father's Name"
-                value={personal.fatherName}
-                onChange={(v) => setPersonal({ ...personal, fatherName: v })}
-                placeholder="Full name of father"
-              />
-              <TextField
-                label="Mother's Name"
-                value={personal.motherName}
-                onChange={(v) => setPersonal({ ...personal, motherName: v })}
-                placeholder="Full name of mother"
-              />
+              <TextField label="Passport Number *" value={personal.passportNumber} onChange={(v) => setPersonal({ ...personal, passportNumber: v })} required placeholder="e.g., ET1234567" />
+              <TextField label="Passport Expiry Date" type="date" value={personal.passportExpiryDate} onChange={(v) => setPersonal({ ...personal, passportExpiryDate: v })} />
+              <TextField label="National ID Number" value={personal.nationalId} onChange={(v) => setPersonal({ ...personal, nationalId: v })} placeholder="e.g., 1234567890" />
+              <TextField label="Labor ID Number" value={personal.laborId} onChange={(v) => setPersonal({ ...personal, laborId: v })} placeholder="e.g., LAB-2024-001" />
             </div>
           </div>
 
-          {/* ── Emergency Contact Relation ── */}
-          <div>
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Emergency Contact Relationship</h4>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold">5</span>
+              <h4 className="font-bold text-ink">Emergency Contact</h4>
+            </div>
             <div className="grid gap-4 md:grid-cols-3">
-              <TextField
-                label="Emergency Contact Name *"
-                value={personal.emergencyContact}
-                onChange={(v) => setPersonal({ ...personal, emergencyContact: v })}
-                required
-              />
-              <TextField
-                label="Emergency Phone *"
-                type="tel"
-                value={personal.emergencyPhone}
-                onChange={(v) => setPersonal({ ...personal, emergencyPhone: v })}
-                required
-              />
-              <SelectField
-                label="Relationship *"
-                value={personal.emergencyRelation}
-                onChange={(v) => setPersonal({ ...personal, emergencyRelation: v })}
-                options={['Spouse', 'Parent', 'Sibling', 'Child', 'Relative', 'Friend', 'Other']}
-              />
+              <TextField label="Full Name *" value={personal.emergencyContact} onChange={(v) => setPersonal({ ...personal, emergencyContact: v })} required placeholder="e.g., Sara Kebede" />
+              <TextField label="Phone Number *" type="tel" value={personal.emergencyPhone} onChange={(v) => setPersonal({ ...personal, emergencyPhone: v })} required placeholder="e.g., +251911234567" />
+              <SelectField label="Relationship *" value={personal.emergencyRelation} onChange={(v) => setPersonal({ ...personal, emergencyRelation: v })} options={['Spouse', 'Parent', 'Sibling', 'Child', 'Relative', 'Friend', 'Other']} />
             </div>
           </div>
 
-          {/* ── Bank Account Information ── */}
-          <div className="rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-emerald-600">🏦 Bank Account Information</h4>
-            <div className="grid gap-4 md:grid-cols-3">
-              <SelectField
-                label="Bank Name"
-                value={personal.bankName}
-                onChange={(v) => setPersonal({ ...personal, bankName: v })}
-                options={['Commercial Bank of Ethiopia', 'Awash Bank', 'Dashen Bank', 'Bank of Abyssinia', 'Oromia Cooperative Bank', 'Berhan Bank', 'Nib International Bank', 'United Bank', 'Cooperative Bank of Oromia', 'Other']}
-              />
-              <TextField
-                label="Account Number"
-                value={personal.bankAccountNumber}
-                onChange={(v) => setPersonal({ ...personal, bankAccountNumber: v })}
-                placeholder="e.g., 1000123456789"
-              />
-              <TextField
-                label="Branch"
-                value={personal.bankBranch}
-                onChange={(v) => setPersonal({ ...personal, bankBranch: v })}
-                placeholder="e.g., Bole Branch"
-              />
+          <div className="rounded-2xl border-2 border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">6</span>
+              <h4 className="font-bold text-emerald-800">Bank Account (for salary remittance)</h4>
             </div>
-            <p className="mt-2 text-xs text-emerald-600">Used for salary remittance from abroad</p>
+            <div className="grid gap-4 md:grid-cols-3">
+              <SelectField label="Bank Name" value={personal.bankName} onChange={(v) => setPersonal({ ...personal, bankName: v })} options={['Commercial Bank of Ethiopia', 'Awash Bank', 'Dashen Bank', 'Bank of Abyssinia', 'Oromia Cooperative Bank', 'Berhan Bank', 'Nib International Bank', 'United Bank', 'Cooperative Bank of Oromia', 'Other']} />
+              <TextField label="Account Number" value={personal.bankAccountNumber} onChange={(v) => setPersonal({ ...personal, bankAccountNumber: v })} placeholder="e.g., 1000123456789" />
+              <TextField label="Branch" value={personal.bankBranch} onChange={(v) => setPersonal({ ...personal, bankBranch: v })} placeholder="e.g., Bole Branch" />
+            </div>
           </div>
         </div>
       )}
