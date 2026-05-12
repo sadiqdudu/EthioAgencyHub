@@ -29,9 +29,14 @@ interface Pilgrim {
   placeOfBirth: string;
   nationality: string;
   passportNumber: string;
+  passportType: string;
   passportIssueDate: string;
   passportExpiryDate: string;
   passportIssuePlace: string;
+  issuingAuthority: string;
+  fatherName: string;
+  motherName: string;
+  previousPassportNumber: string;
   phone: string;
   email?: string;
   address: string;
@@ -59,9 +64,14 @@ interface PilgrimFormData {
   placeOfBirth: string;
   nationality: string;
   passportNumber: string;
+  passportType: string;
   passportIssueDate: string;
   passportExpiryDate: string;
   passportIssuePlace: string;
+  issuingAuthority: string;
+  fatherName: string;
+  motherName: string;
+  previousPassportNumber: string;
   phone: string;
   email: string;
   address: string;
@@ -148,9 +158,14 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
     placeOfBirth: '',
     nationality: 'Ethiopian',
     passportNumber: '',
+    passportType: 'Regular',
     passportIssueDate: '',
     passportExpiryDate: '',
     passportIssuePlace: '',
+    issuingAuthority: '',
+    fatherName: '',
+    motherName: '',
+    previousPassportNumber: '',
     phone: '',
     email: '',
     address: '',
@@ -171,7 +186,8 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
   const loadPilgrims = () => {
     const mockPilgrims: Pilgrim[] = [
       {
-        id: 'P001', firstName: 'Ahmed', lastName: 'Hassan Mohammed', gender: 'male', dateOfBirth: '1980-05-20', placeOfBirth: 'Addis Ababa', nationality: 'Ethiopian', passportNumber: 'EP123456', passportIssueDate: '2023-06-15', passportExpiryDate: '2028-06-14', passportIssuePlace: 'Addis Ababa', phone: '+251911234567', email: 'ahmed.h@example.com', address: 'Kolfe Keranio', city: 'Addis Ababa', region: 'Addis Ababa', emergencyContactName: 'Fatima Ahmed', emergencyContactPhone: '+251911234568', emergencyContactRelation: 'Wife', destination: 'Hajj', season: '2026', groupId: 'GRP-001', groupName: 'Hajj 2026 - Group A', status: 'ready', registrationDate: '2024-01-10', createdAt: '2024-01-10', updatedAt: '2024-02-15',
+        id: 'P001', firstName: 'Ahmed', lastName: 'Hassan Mohammed', gender: 'male', dateOfBirth: '1980-05-20', placeOfBirth: 'Addis Ababa', nationality: 'Ethiopian',
+        passportNumber: 'EP123456', passportType: 'Regular', passportIssueDate: '2023-06-15', passportExpiryDate: '2028-06-14', passportIssuePlace: 'Addis Ababa', issuingAuthority: 'Immigration & Visa Service', fatherName: 'Mohammed Ahmed', motherName: 'Aisha Mohammed', previousPassportNumber: '', phone: '+251911234567', email: 'ahmed.h@example.com', address: 'Kolfe Keranio', city: 'Addis Ababa', region: 'Addis Ababa', emergencyContactName: 'Fatima Ahmed', emergencyContactPhone: '+251911234568', emergencyContactRelation: 'Wife', destination: 'Hajj', season: '2026', groupId: 'GRP-001', groupName: 'Hajj 2026 - Group A', status: 'ready', registrationDate: '2024-01-10', createdAt: '2024-01-10', updatedAt: '2024-02-15',
         documents: [
           { id: 'D001', type: 'passport', fileName: 'passport_ahmed.pdf', status: 'verified', uploadDate: '2024-01-15', verifiedDate: '2024-01-16' },
           { id: 'D002', type: 'visa', fileName: 'visa_ahmed.pdf', status: 'verified', uploadDate: '2024-02-01', verifiedDate: '2024-02-02' },
@@ -179,20 +195,22 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
         ]
       },
       {
-        id: 'P002', firstName: 'Fatima', lastName: 'Ibrahim Ali', gender: 'female', dateOfBirth: '1987-08-12', placeOfBirth: 'Dire Dawa', nationality: 'Ethiopian', passportNumber: 'EP234567', passportIssueDate: '2023-09-20', passportExpiryDate: '2029-09-19', passportIssuePlace: 'Dire Dawa', phone: '+251912345678', email: 'fatima.i@example.com', address: 'Sheger', city: 'Dire Dawa', region: 'Dire Dawa', emergencyContactName: 'Ibrahim Ali', emergencyContactPhone: '+251912345679', emergencyContactRelation: 'Husband', destination: 'Umrah', season: '2026', groupId: 'GRP-002', groupName: 'Ramadan Umrah 2026', status: 'visa_approved', registrationDate: '2024-01-15', createdAt: '2024-01-15', updatedAt: '2024-02-20',
+        id: 'P002', firstName: 'Fatima', lastName: 'Ibrahim Ali', gender: 'female', dateOfBirth: '1987-08-12', placeOfBirth: 'Dire Dawa', nationality: 'Ethiopian',
+        passportNumber: 'EP234567', passportType: 'Regular', passportIssueDate: '2023-09-20', passportExpiryDate: '2029-09-19', passportIssuePlace: 'Dire Dawa', issuingAuthority: 'Immigration & Visa Service', fatherName: 'Ibrahim Ali', motherName: 'Zainab Ali', previousPassportNumber: '', phone: '+251912345678', email: 'fatima.i@example.com', address: 'Sheger', city: 'Dire Dawa', region: 'Dire Dawa', emergencyContactName: 'Ibrahim Ali', emergencyContactPhone: '+251912345679', emergencyContactRelation: 'Husband', destination: 'Umrah', season: '2026', groupId: 'GRP-002', groupName: 'Ramadan Umrah 2026', status: 'visa_approved', registrationDate: '2024-01-15', createdAt: '2024-01-15', updatedAt: '2024-02-20',
         documents: [
           { id: 'D004', type: 'passport', fileName: 'passport_fatima.pdf', status: 'verified', uploadDate: '2024-01-20', verifiedDate: '2024-01-21' },
           { id: 'D005', type: 'visa', fileName: 'visa_fatima.pdf', status: 'uploaded', uploadDate: '2024-02-15' },
         ]
       },
       {
-        id: 'P003', firstName: 'Ibrahim', lastName: 'Mohamed Tessema', gender: 'male', dateOfBirth: '1973-02-28', placeOfBirth: 'Hawassa', nationality: 'Ethiopian', passportNumber: 'EP345678', passportIssueDate: '2022-11-10', passportExpiryDate: '2027-11-09', passportIssuePlace: 'Addis Ababa', phone: '+251913456789', email: 'ibrahim.m@example.com', address: 'Bole', city: 'Addis Ababa', region: 'Addis Ababa', emergencyContactName: 'Amina Mohamed', emergencyContactPhone: '+251913456780', emergencyContactRelation: 'Wife', destination: 'Hajj', season: '2026', groupId: 'GRP-001', groupName: 'Hajj 2026 - Group A', status: 'requirements_met', registrationDate: '2024-01-20', createdAt: '2024-01-20', updatedAt: '2024-01-25',
+        id: 'P003', firstName: 'Ibrahim', lastName: 'Mohamed Tessema', gender: 'male', dateOfBirth: '1973-02-28', placeOfBirth: 'Hawassa', nationality: 'Ethiopian',
+        passportNumber: 'EP345678', passportType: 'Regular', passportIssueDate: '2022-11-10', passportExpiryDate: '2027-11-09', passportIssuePlace: 'Addis Ababa', issuingAuthority: 'Immigration & Visa Service', fatherName: 'Mohamed Tessema', motherName: 'Hawa Mohamed', previousPassportNumber: '', phone: '+251913456789', email: 'ibrahim.m@example.com', address: 'Bole', city: 'Addis Ababa', region: 'Addis Ababa', emergencyContactName: 'Amina Mohamed', emergencyContactPhone: '+251913456780', emergencyContactRelation: 'Wife', destination: 'Hajj', season: '2026', groupId: 'GRP-001', groupName: 'Hajj 2026 - Group A', status: 'requirements_met', registrationDate: '2024-01-20', createdAt: '2024-01-20', updatedAt: '2024-01-25',
         documents: [
           { id: 'D006', type: 'passport', fileName: 'passport_ibrahim.pdf', status: 'verified', uploadDate: '2024-01-25', verifiedDate: '2024-01-26' },
         ]
       },
       {
-        id: 'P004', firstName: 'Amina', lastName: 'Ahmed Seid', gender: 'female', dateOfBirth: '1990-11-15', placeOfBirth: 'Adama', nationality: 'Ethiopian', passportNumber: 'EP456789', passportIssueDate: '2023-08-05', passportExpiryDate: '2028-08-04', passportIssuePlace: 'Adama', phone: '+251914567890', email: 'amina.a@example.com', address: 'Central', city: 'Adama', region: 'Oromia', emergencyContactName: 'Ahmed Seid', emergencyContactPhone: '+251914567891', emergencyContactRelation: 'Father', destination: 'Umrah', season: '2026', groupId: 'GRP-003', groupName: 'Umrah Business Group', status: 'documents_pending', registrationDate: '2024-02-01', createdAt: '2024-02-01', updatedAt: '2024-02-01',
+        id: 'P004', firstName: 'Amina', lastName: 'Ahmed Seid', gender: 'female', dateOfBirth: '1990-11-15', placeOfBirth: 'Adama', nationality: 'Ethiopian',         passportNumber: 'EP456789', passportType: 'Regular', passportIssueDate: '2023-08-05', passportExpiryDate: '2028-08-04', passportIssuePlace: 'Adama', issuingAuthority: 'Immigration & Visa Service', fatherName: 'Ahmed Seid', motherName: 'Khadija Ahmed', previousPassportNumber: '', phone: '+251914567890', email: 'amina.a@example.com', address: 'Central', city: 'Adama', region: 'Oromia', emergencyContactName: 'Ahmed Seid', emergencyContactPhone: '+251914567891', emergencyContactRelation: 'Father', destination: 'Umrah', season: '2026', groupId: 'GRP-003', groupName: 'Umrah Business Group', status: 'documents_pending', registrationDate: '2024-02-01', createdAt: '2024-02-01', updatedAt: '2024-02-01',
         documents: [
           { id: 'D007', type: 'passport', fileName: 'passport_amina.pdf', status: 'verified', uploadDate: '2024-02-01', verifiedDate: '2024-02-02' },
         ]
@@ -233,9 +251,14 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
         placeOfBirth: pilgrim.placeOfBirth,
         nationality: pilgrim.nationality,
         passportNumber: pilgrim.passportNumber,
+        passportType: pilgrim.passportType || 'Regular',
         passportIssueDate: pilgrim.passportIssueDate,
         passportExpiryDate: pilgrim.passportExpiryDate,
         passportIssuePlace: pilgrim.passportIssuePlace,
+        issuingAuthority: pilgrim.issuingAuthority || '',
+        fatherName: pilgrim.fatherName || '',
+        motherName: pilgrim.motherName || '',
+        previousPassportNumber: pilgrim.previousPassportNumber || '',
         phone: pilgrim.phone,
         email: pilgrim.email || '',
         address: pilgrim.address,
@@ -253,7 +276,8 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
       setFormData({
         firstName: '', lastName: '', gender: 'male', dateOfBirth: '',
         placeOfBirth: '', nationality: 'Ethiopian', passportNumber: '',
-        passportIssueDate: '', passportExpiryDate: '', passportIssuePlace: '',
+        passportType: 'Regular', passportIssueDate: '', passportExpiryDate: '',
+        passportIssuePlace: '', issuingAuthority: '', fatherName: '', motherName: '', previousPassportNumber: '',
         phone: '', email: '', address: '', city: '', region: '',
         emergencyContactName: '', emergencyContactPhone: '', emergencyContactRelation: '',
         destination: 'Hajj', season: '2026', groupId: '',
@@ -867,13 +891,52 @@ export function HajjUmrahPilgrimRegister({ openNewRegistration = false }: HajjUm
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-purple-700 mb-1">Issue Place</label>
-                        <input 
-                          type="text" 
-                          value={isModalOpen ? formData.passportIssuePlace : selectedPilgrim?.passportIssuePlace}
+                        <input type="text" value={isModalOpen ? formData.passportIssuePlace : selectedPilgrim?.passportIssuePlace}
                           onChange={(e) => setFormData({ ...formData, passportIssuePlace: e.target.value })}
                           disabled={!isModalOpen}
-                          className="w-full rounded-xl border border-purple-200 px-4 py-2.5 text-sm disabled:bg-purple-100"
-                        />
+                          className="w-full rounded-xl border border-purple-200 px-4 py-2.5 text-sm disabled:bg-purple-100" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-purple-700 mb-1">Passport Type</label>
+                        <select value={isModalOpen ? formData.passportType : selectedPilgrim?.passportType || 'Regular'}
+                          onChange={(e) => setFormData({ ...formData, passportType: e.target.value })}
+                          disabled={!isModalOpen}
+                          className="w-full rounded-xl border border-purple-200 px-4 py-2.5 text-sm disabled:bg-purple-100">
+                          <option value="Regular">Regular</option>
+                          <option value="Diplomatic">Diplomatic</option>
+                          <option value="Service">Service</option>
+                          <option value="Provisional">Provisional</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-purple-700 mb-1">Issuing Authority</label>
+                        <input type="text" value={isModalOpen ? formData.issuingAuthority : selectedPilgrim?.issuingAuthority || ''}
+                          onChange={(e) => setFormData({ ...formData, issuingAuthority: e.target.value })}
+                          disabled={!isModalOpen}
+                          className="w-full rounded-xl border border-purple-200 px-4 py-2.5 text-sm disabled:bg-purple-100" placeholder="e.g., Immigration & Visa Service" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-purple-700 mb-1">Father's Name (as in passport)</label>
+                          <input type="text" value={isModalOpen ? formData.fatherName : selectedPilgrim?.fatherName || ''}
+                            onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
+                            disabled={!isModalOpen}
+                            className="w-full rounded-xl border border-purple-200 px-4 py-2.5 text-sm disabled:bg-purple-100" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-purple-700 mb-1">Mother's Name (as in passport)</label>
+                          <input type="text" value={isModalOpen ? formData.motherName : selectedPilgrim?.motherName || ''}
+                            onChange={(e) => setFormData({ ...formData, motherName: e.target.value })}
+                            disabled={!isModalOpen}
+                            className="w-full rounded-xl border border-purple-200 px-4 py-2.5 text-sm disabled:bg-purple-100" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-purple-700 mb-1">Previous Passport Number (if renewal)</label>
+                        <input type="text" value={isModalOpen ? formData.previousPassportNumber : selectedPilgrim?.previousPassportNumber || ''}
+                          onChange={(e) => setFormData({ ...formData, previousPassportNumber: e.target.value })}
+                          disabled={!isModalOpen}
+                          className="w-full rounded-xl border border-purple-200 px-4 py-2.5 text-sm disabled:bg-purple-100" placeholder="e.g., ET987654" />
                       </div>
                     </div>
                   </div>
