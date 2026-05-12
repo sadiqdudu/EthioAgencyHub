@@ -74,7 +74,19 @@ export function DocumentsVisaModule() {
 
   const toggleSelect = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const selectAll = () => setSelectedIds(prev => prev.length === filtered.length ? [] : filtered.map(e => e.id));
-  const updateStage = (id: string, stage: number) => setVisaStages(prev => ({ ...prev, [id]: { ...prev[id], stage } }));
+  const updateStage = (id: string, stage: number) => {
+    setVisaStages(prev => ({ ...prev, [id]: { ...prev[id], stage } }));
+    // Bridge: notify ticket department when visa is approved (stage 3 = Visa Approved/Stamped)
+    if (stage >= 3) {
+      const emp = employees.find(e => e.id === id);
+      if (emp) {
+        fetch('/api/integration/bridge', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'visa_approved', employeeId: emp.id })
+        }).catch(() => {});
+      }
+    }
+  };
   const handleBulkManifest = () => { alert(`Generated manifest for ${selectedIds.length} employees.`); setSelectedIds([]); };
 
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-600" /></div>;

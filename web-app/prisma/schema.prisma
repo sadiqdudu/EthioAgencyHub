@@ -125,6 +125,9 @@ model Employee {
   documents           Document[]
   travels             Travel[]
   generatedCvs       GeneratedCv[]
+  visaApplications   VisaApplication[]
+  molsRecords        MolsRecord[]
+  crossMatchResults  CrossMatchResult[]
   selectedByAgent     String?
   selectedAt          DateTime?
   deletedAt           DateTime?
@@ -318,4 +321,79 @@ model GeneratedCv {
 
   @@index([employeeId])
   @@index([createdAt])
+}
+
+enum VisaStage {
+  DOCUMENT_COLLECTION
+  PORTAL_REGISTRATION
+  SUBMITTED_TO_EMBASSY
+  VISA_APPROVED
+  REJECTED_CORRECTION
+}
+
+model VisaApplication {
+  id              String    @id @default(cuid())
+  employee        Employee  @relation(fields: [employeeId], references: [id])
+  employeeId      String
+  embassy         String
+  visaType        String
+  stage           VisaStage @default(DOCUMENT_COLLECTION)
+  docPassport     String    @default("pending")
+  docMedical      String    @default("pending")
+  docPolice       String    @default("pending")
+  docContract     String    @default("pending")
+  docPhotos       String    @default("pending")
+  docInsurance    String    @default("pending")
+  docCertificate  String    @default("pending")
+  notes           String?
+  molsUnlocked   Boolean   @default(false)
+  ticketNotified  Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([stage])
+}
+
+enum MolsStage {
+  CONTRACT_LINKED
+  MOFA_AUTHENTICATED
+  EMBASSY_LEGALIZATION
+  MOLS_SUBMITTED
+  APPROVED
+}
+
+model MolsRecord {
+  id              String    @id @default(cuid())
+  employee        Employee  @relation(fields: [employeeId], references: [id])
+  employeeId      String
+  stage           MolsStage @default(CONTRACT_LINKED)
+  healthCert      Boolean   @default(false)
+  insurance       Boolean   @default(false)
+  coc             Boolean   @default(false)
+  visaUnlocked   Boolean   @default(false)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([stage])
+}
+
+model CrossMatchResult {
+  id              String   @id @default(cuid())
+  employee        Employee @relation(fields: [employeeId], references: [id])
+  employeeId      String
+  allPass         Boolean  @default(false)
+  nameMatch       Boolean  @default(true)
+  passportMatch   Boolean  @default(true)
+  visaCountryMatch Boolean @default(true)
+  passportExpiryOk Boolean @default(true)
+  visaExpiryOk    Boolean  @default(true)
+  errors          String?
+  checkedAt       DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([employeeId])
+  @@index([allPass])
 }
