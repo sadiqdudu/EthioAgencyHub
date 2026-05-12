@@ -1,6 +1,7 @@
 import { 
   Activity, 
   BadgeCheck, 
+  BookOpen,
   BriefcaseBusiness, 
   Building2, 
   CalendarClock, 
@@ -157,7 +158,13 @@ export const modules = [
       { title: 'Security', href: '/user-settings/security', icon: Lock },
       { title: 'Notifications', href: '/user-settings/notifications', icon: Bell }
     ]
-  }
+  },
+  { 
+    title: 'Teaching / Demo', 
+    href: '/teaching', 
+    icon: BookOpen, 
+    summary: 'Sample data & records for training and testing.',
+  },
 ];
 
 export const employees = [
