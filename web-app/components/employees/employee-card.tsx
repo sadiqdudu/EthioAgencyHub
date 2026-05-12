@@ -64,7 +64,11 @@ export function EmployeeCard({ employee, agentId, onSelect, viewOnly = false }: 
     const age = Math.floor((Date.now() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
     return age;
   };
-  const getLanguages = (): string[] => employee.languages || [];
+  const getLanguages = (): string[] => {
+    if (Array.isArray(employee.languages)) return employee.languages;
+    if (typeof employee.languages === 'string') return (employee.languages as string).split(',').map(s => s.trim()).filter(Boolean);
+    return [];
+  };
   const getSkills = () => (employee.additionalSkills || '').split(',').map(s => s.trim()).filter(Boolean);
 
   const handleSelect = async () => {
