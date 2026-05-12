@@ -418,6 +418,8 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
       fatherName: data.fatherName || prev.fatherName,
       motherName: data.motherName || prev.motherName
     }));
+    // Switch to Personal tab so user can see and edit the auto-filled fields
+    setActiveTab(0);
   };
 
   const saveAndContinue = async () => {
