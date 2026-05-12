@@ -64,19 +64,20 @@ export function Sidebar({ dict }: Props) {
             const isExpanded = expandedModules.includes(module.title);
             const modActive = isActive(module.href);
             return (
-              <div key={module.title} className="mb-1">
-                <div className={`flex items-center gap-0 rounded-xl transition-colors cursor-pointer ${modActive ? 'bg-brand-50' : 'hover:bg-slate-100'}`}
-                  onClick={() => { if (module.submenu?.length) toggleModule(module.title); }}>
+              <div key={module.title} className="mb-1 group"
+                onMouseEnter={() => { if (module.submenu?.length) toggleModule(module.title); }}
+                onMouseLeave={() => { if (module.submenu?.length && expandedModules.includes(module.title)) toggleModule(module.title); }}
+              >
+                <div className={`flex items-center gap-0 rounded-xl transition-colors ${modActive ? 'bg-brand-50' : ''}`}>
                   <Link href={module.href}
-                    className={`flex flex-1 items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${modActive ? 'text-brand-700' : 'text-slate-600 hover:text-ink'}`}
-                    onClick={(e) => e.stopPropagation()}>
+                    className={`flex flex-1 items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${modActive ? 'text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-ink'}`}>
                     <module.icon className="h-5 w-5 shrink-0" />
                     <span className="truncate">{module.title}</span>
                   </Link>
                   {module.submenu && module.submenu.length > 0 && (
-                    <span className={`mr-2 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''} text-slate-400`}>
-                      <ChevronDown className="h-4 w-4" />
-                    </span>
+                    <button onClick={() => toggleModule(module.title)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600" type="button" aria-label={`Toggle ${module.title}`}>
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                    </button>
                   )}
                 </div>
                 {isExpanded && module.submenu && module.submenu.length > 0 && (
