@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronDown, Globe2, LayoutDashboard, BarChart3, CheckSquare2, Activity, X, Search, PlusCircle, FileText, Plane, Ticket } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Globe2, LayoutDashboard, X, Search, PlusCircle, FileText, Plane, Ticket } from 'lucide-react';
 import { modules } from '@/lib/mock-data';
 import { siteConfig } from '@/config/site';
 import { useSidebar } from '@/components/layout/sidebar-provider';
@@ -14,7 +14,7 @@ type Props = { dict: Dictionary };
 export function Sidebar({ dict }: Props) {
   const { isOpen, toggle } = useSidebar();
   const pathname = usePathname();
-  const [expandedModules, setExpandedModules] = useState<string[]>(['Dashboard', 'Employee Management', 'Documents', 'Travel']);
+  const [expandedModules, setExpandedModules] = useState<string[]>(['Employee Management', 'Documents', 'Travel']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const toggleModule = (title: string) => {
@@ -34,12 +34,6 @@ export function Sidebar({ dict }: Props) {
   const filteredNav = searchQuery
     ? allNavItems.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()))
     : [];
-
-  const dashboardSubmenu = [
-    { title: 'Trends', href: '/dashboard/trends', icon: BarChart3 },
-    { title: 'Tasks', href: '/dashboard/tasks', icon: CheckSquare2 },
-    { title: 'Activities', href: '/dashboard/activities', icon: Activity },
-  ];
 
   return (
     <>
@@ -94,27 +88,11 @@ export function Sidebar({ dict }: Props) {
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
           {/* Dashboard */}
           <div className="mb-2">
-            <div className={`flex items-center gap-0 rounded-xl transition-colors ${isActive('/dashboard') && !pathname.startsWith('/dashboard/trends') && !pathname.startsWith('/dashboard/tasks') && !pathname.startsWith('/dashboard/activities') ? 'bg-brand-50' : ''}`}>
-              <Link href="/dashboard"
-                className={`flex flex-1 items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${isActive('/dashboard') ? 'text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-ink'}`}>
-                <LayoutDashboard className="h-5 w-5 shrink-0" />
-                <span className="truncate">{dict.common.dashboard}</span>
-              </Link>
-              <button onClick={() => toggleModule('Dashboard')} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600" type="button" aria-label="Toggle Dashboard submenu">
-                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${expandedModules.includes('Dashboard') ? 'rotate-180' : ''}`} />
-              </button>
-            </div>
-            {expandedModules.includes('Dashboard') && (
-              <div className="ml-6 mt-0.5 space-y-0.5 border-l border-slate-200 py-1 pl-3">
-                {dashboardSubmenu.map(sub => (
-                  <Link key={sub.href} href={sub.href}
-                    className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${isActive(sub.href) ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}>
-                    <sub.icon className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{sub.title}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
+            <Link href="/dashboard"
+              className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${isActive('/dashboard') ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-ink'}`}>
+              <LayoutDashboard className="h-5 w-5 shrink-0" />
+              <span className="truncate">{dict.common.dashboard}</span>
+            </Link>
           </div>
 
           <div className="border-t border-slate-100 my-2" />

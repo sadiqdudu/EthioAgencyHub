@@ -1,7 +1,5 @@
-﻿'use client';
+﻿import { redirect } from 'next/navigation';
 
-import { ActivitiesModule } from '@/components/dashboard/activities-module';
-
-export default function ActivitiesPage() {
-  return <ActivitiesModule />;
+export default function Page() {
+  redirect('/dashboard?tab=activities');
 }

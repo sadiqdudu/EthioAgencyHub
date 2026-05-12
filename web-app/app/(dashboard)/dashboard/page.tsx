@@ -1,7 +1,19 @@
 'use client';
 
-import { DashboardOverviewModule } from '@/components/dashboard/dashboard-overview-module';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { DashboardTabsModule } from '@/components/dashboard/dashboard-tabs-module';
 
-export default function Page() {
-  return <DashboardOverviewModule />;
+function DashboardPageContent() {
+  const searchParams = useSearchParams();
+  const tab = searchParams.get('tab');
+  return <DashboardTabsModule initialTab={tab as string} />;
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardTabsModule />}>
+      <DashboardPageContent />
+    </Suspense>
+  );
 }

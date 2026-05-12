@@ -1,7 +1,5 @@
-﻿'use client';
+﻿import { redirect } from 'next/navigation';
 
-import { TrendsModule } from '@/components/dashboard/trends-module';
-
-export default function TrendsPage() {
-  return <TrendsModule />;
+export default function Page() {
+  redirect('/dashboard?tab=trends');
 }
