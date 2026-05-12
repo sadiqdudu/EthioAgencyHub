@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronDown, Globe2, LayoutDashboard, X, Search, PlusCircle, FileText, Plane, Ticket } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Globe2, LayoutDashboard, X, PlusCircle, FileText, Plane, Ticket } from 'lucide-react';
 import { modules } from '@/lib/mock-data';
 import { siteConfig } from '@/config/site';
 import { useSidebar } from '@/components/layout/sidebar-provider';
@@ -15,7 +15,6 @@ export function Sidebar({ dict }: Props) {
   const { isOpen, toggle } = useSidebar();
   const pathname = usePathname();
   const [expandedModules, setExpandedModules] = useState<string[]>(['Employee Management', 'Documents', 'Travel']);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const toggleModule = (title: string) => {
     setExpandedModules(prev => prev.includes(title) ? prev.filter(m => m !== title) : [...prev, title]);
@@ -25,15 +24,6 @@ export function Sidebar({ dict }: Props) {
     if (href === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(href);
   };
-
-  const allNavItems = modules.flatMap(m => [
-    { title: m.title, href: m.href, icon: m.icon, isMain: true },
-    ...(m.submenu?.map(s => ({ title: s.title, href: s.href, icon: s.icon, isMain: false, parent: m.title })) || [])
-  ]);
-
-  const filteredNav = searchQuery
-    ? allNavItems.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    : [];
 
   return (
     <>
@@ -55,34 +45,6 @@ export function Sidebar({ dict }: Props) {
             <X className="h-5 w-5 text-slate-500" />
           </button>
         </div>
-
-        {/* Quick Search */}
-        <div className="px-3 pt-3 pb-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search menu..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-4 text-xs focus:border-brand-500 focus:outline-none" />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Search Results */}
-        {searchQuery && (
-          <div className="mx-3 mb-2 max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            {filteredNav.length > 0 ? filteredNav.slice(0, 10).map(item => (
-              <Link key={item.href} href={item.href} onClick={() => { toggle(); setSearchQuery(''); }}
-                className={`flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-brand-50 transition-colors ${isActive(item.href) ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-slate-600'}`}>
-                <item.icon className="h-4 w-4 shrink-0" />
-                <span className="truncate">{item.title}</span>
-                {!item.isMain && <span className="text-[10px] text-slate-400 ml-auto truncate">{(item as any).parent}</span>}
-              </Link>
-            )) : <p className="px-4 py-3 text-sm text-slate-500">No results found</p>}
-          </div>
-        )}
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
