@@ -81,6 +81,51 @@ export function CvGenerator() {
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [showBatchMode, setShowBatchMode] = useState(false);
   const [generatedCount, setGeneratedCount] = useState(0);
+  
+  // Agent template customization
+  const [showAgentManager, setShowAgentManager] = useState(false);
+  const [agentTemplates, setAgentTemplates] = useState<Record<string, { logo: string; header: string; footer: string; color: string }>>({});
+  const [currentAgent, setCurrentAgent] = useState('');
+  const [agentName, setAgentName] = useState('');
+  const [agentLogo, setAgentLogo] = useState('');
+  const [agentHeader, setAgentHeader] = useState('');
+  const [agentFooter, setAgentFooter] = useState('');
+  const [agentColor, setAgentColor] = useState('#1e40af');
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('agentTemplates');
+      if (saved) setAgentTemplates(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  const saveAgentTemplate = () => {
+    if (!agentName.trim()) return;
+    const updated = { ...agentTemplates, [agentName]: { logo: agentLogo, header: agentHeader, footer: agentFooter, color: agentColor } };
+    setAgentTemplates(updated);
+    try { localStorage.setItem('agentTemplates', JSON.stringify(updated)); } catch {}
+    setShowAgentManager(false);
+  };
+
+  const loadAgentTemplate = (name: string) => {
+    const t = agentTemplates[name];
+    if (t) {
+      setCurrentAgent(name);
+      setSelectedTemplate('agency');
+      setAgentLogo(t.logo);
+      setAgentHeader(t.header);
+      setAgentFooter(t.footer);
+      setAgentColor(t.color);
+    }
+  };
+
+  const deleteAgentTemplate = (name: string) => {
+    const updated = { ...agentTemplates };
+    delete updated[name];
+    setAgentTemplates(updated);
+    try { localStorage.setItem('agentTemplates', JSON.stringify(updated)); } catch {}
+    if (currentAgent === name) { setCurrentAgent(''); setAgentLogo(''); setAgentHeader(''); setAgentFooter(''); }
+  };
 
   useEffect(() => {
     fetchEmployees();
@@ -152,7 +197,7 @@ export function CvGenerator() {
       const res = await fetch(`/api/employees/${empId}`);
       const data = await res.json();
       if (data.success) {
-        const html = generateCvHtml(data.data, selectedTemplate, selectedLanguage);
+        const html = generateCvHtml(data.data, selectedTemplate, selectedLanguage, { color: agentColor, templates: agentTemplates, current: currentAgent });
         setGeneratedCv(html);
 
         try {
@@ -191,7 +236,7 @@ export function CvGenerator() {
           setGeneratedCount(prev => prev + 1);
 
           try {
-            const html = generateCvHtml(data.data, selectedTemplate, selectedLanguage);
+            const html = generateCvHtml(data.data, selectedTemplate, selectedLanguage, { color: agentColor, templates: agentTemplates, current: currentAgent });
             await fetch('/api/cvs', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -452,6 +497,65 @@ export function CvGenerator() {
               )}
             </div>
 
+            {/* Agent Template Manager */}
+            <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-brand-50 to-blue-50 p-5 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-bold text-ink flex items-center gap-2"><Award className="h-5 w-5 text-brand-600" /> Agent CV Templates</h4>
+                <button onClick={() => { setAgentName(''); setAgentLogo(''); setAgentHeader(''); setAgentFooter(''); setAgentColor('#1e40af'); setShowAgentManager(true); }} className="text-sm font-semibold text-brand-600 hover:text-brand-800">+ New Agent</button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(agentTemplates).map(([name, t]) => (
+                  <div key={name} className={`group relative rounded-xl border-2 px-3 py-2 cursor-pointer transition-all ${currentAgent === name ? 'border-brand-600 bg-brand-50' : 'border-slate-200 bg-white hover:border-brand-300'}`}>
+                    <div onClick={() => loadAgentTemplate(name)} className="flex items-center gap-2 pr-6">
+                      {t.logo ? <img src={t.logo} alt="" className="h-6 w-6 rounded object-cover" /> : <Award className="h-5 w-5 text-brand-500" />}
+                      <span className="text-sm font-semibold">{name}</span>
+                    </div>
+                    <button onClick={() => deleteAgentTemplate(name)} className="absolute top-1 right-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3.5 w-3.5" /></button>
+                  </div>
+                ))}
+                {Object.keys(agentTemplates).length === 0 && <p className="text-xs text-slate-500 py-2">No agent templates saved yet. Create one for each agent with their logo and branding.</p>}
+              </div>
+            </div>
+
+            {/* Agent Template Modal */}
+            {showAgentManager && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+                  <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                    <h3 className="font-bold text-ink">Agent CV Template</h3>
+                    <button onClick={() => setShowAgentManager(false)} className="p-1 rounded-lg hover:bg-slate-100"><X className="h-5 w-5 text-slate-500" /></button>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Agent Name *</label>
+                      <input type="text" value={agentName} onChange={e => setAgentName(e.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" placeholder="e.g., Qatar Career Hub" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Logo URL</label>
+                      <input type="text" value={agentLogo} onChange={e => setAgentLogo(e.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" placeholder="Paste image URL or upload" />
+                      {agentLogo && <img src={agentLogo} alt="preview" className="mt-2 h-12 w-12 rounded-lg border object-cover" />}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Header Text</label>
+                      <input type="text" value={agentHeader} onChange={e => setAgentHeader(e.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" placeholder="e.g., Qatar Career Hub - Official CV" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Footer Text</label>
+                      <input type="text" value={agentFooter} onChange={e => setAgentFooter(e.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" placeholder="e.g., Approved by Ministry of Labor" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Brand Color</label>
+                      <input type="color" value={agentColor} onChange={e => setAgentColor(e.target.value)} className="h-10 w-20 rounded border border-slate-300 cursor-pointer" />
+                    </div>
+                  </div>
+                  <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
+                    <button onClick={() => setShowAgentManager(false)} className="px-5 py-2.5 text-sm font-medium text-slate-600">Cancel</button>
+                    <button onClick={saveAgentTemplate} className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700 shadow-sm">Save Template</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Template & Language Selection */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -626,13 +730,13 @@ export function CvGenerator() {
   );
 }
 
-function generateCvHtml(employee: any, template: string, language: string): string {
+function generateCvHtml(employee: any, template: string, language: string, agentOpts?: { color: string; templates: Record<string, { logo: string; header: string; footer: string; color: string }>; current: string }): string {
   const templates: Record<string, { bg: string; primary: string; accent: string; font: string }> = {
     professional: { bg: '#f8fafc', primary: '#1e40af', accent: '#3b82f6', font: 'system-ui' },
     modern: { bg: '#f0fdf4', primary: '#0d9488', accent: '#14b8a6', font: 'Segoe UI' },
     ethiopian: { bg: '#fefce8', primary: '#059669', accent: '#22c55e', font: 'Georgia' },
     executive: { bg: '#faf5ff', primary: '#7c3aed', accent: '#a855f7', font: 'Arial' },
-    agency: { bg: '#fff1f2', primary: '#dc2626', accent: '#ef4444', font: 'Arial' },
+    agency: { bg: '#fff1f2', primary: agentOpts?.color || '#dc2626', accent: '#ef4444', font: 'Arial' },
     simple: { bg: '#ffffff', primary: '#334155', accent: '#64748b', font: 'Times New Roman' }
   };
   
@@ -650,111 +754,93 @@ function generateCvHtml(employee: any, template: string, language: string): stri
   const dob = employee.dateOfBirth || 'N/A';
   const nationality = employee.nationality || 'Ethiopian';
   const status = (employee.status || 'REGISTERED').replace(/_/g, ' ');
-  const psychScore = employee.psychologyScore ?? null;
-  const psychLabel = psychScore !== null ? (psychScore >= 75 ? 'Low Risk' : psychScore >= 50 ? 'Medium Risk' : 'High Risk') : 'Not assessed';
-  const psychColor = psychScore !== null ? (psychScore >= 75 ? '#059669' : psychScore >= 50 ? '#d97706' : '#dc2626') : '#94a3b8';
-  const bankInfo = employee.bankName ? `${employee.bankName}${employee.bankAccountNumber ? ' — Acc: ' + employee.bankAccountNumber : ''}` : 'Not provided';
-  const emergencyInfo = employee.emergencyContact ? `${employee.emergencyContact}${employee.emergencyRelation ? ' (' + employee.emergencyRelation + ')' : ''} — ${employee.emergencyPhone || ''}` : 'Not provided';
+  const region = employee.region || 'N/A';
+  const fatherName = employee.fatherName || 'N/A';
+  const motherName = employee.motherName || 'N/A';
+  const maritalStatus = employee.maritalStatus || 'N/A';
+  const emergencyInfo = employee.emergencyContact ? employee.emergencyContact + ' (' + (employee.emergencyRelation || 'N/A') + ') — ' + (employee.emergencyPhone || '') : 'Not provided';
+  const bankInfo = employee.bankName ? employee.bankName + (employee.bankAccountNumber ? ' — Acc: ' + employee.bankAccountNumber : '') : 'Not provided';
+  const isBilingual = language === 'both';
+  const agentHeaderText = agentOpts?.current && agentOpts?.templates[agentOpts.current]?.header || '';
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>${name} - CV</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: ${t.bg}; font-family: ${t.font}, sans-serif; color: #333; line-height: 1.6; padding: 20px; }
-    .page { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-    .header { background: linear-gradient(135deg, ${t.primary}, ${t.accent}); color: white; padding: 30px; margin: -40px -40px 25px -40px; border-radius: 16px 16px 0 0; }
-    .name { font-size: 30px; font-weight: 800; }
-    .role { font-size: 15px; opacity: 0.9; margin-top: 4px; }
-    .meta { margin-top: 12px; font-size: 12px; opacity: 0.85; display: flex; gap: 15px; flex-wrap: wrap; }
-    .section { margin-bottom: 22px; }
-    .section-title { font-size: 14px; font-weight: bold; color: ${t.primary}; border-bottom: 2px solid ${t.accent}20; padding-bottom: 6px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    .card { background: ${t.bg}; padding: 10px 12px; border-radius: 8px; border-left: 3px solid ${t.accent}; }
-    .label { font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 600; letter-spacing: 0.5px; }
-    .value { font-size: 13px; color: #1e293b; margin-top: 2px; font-weight: 500; }
-    .contact-row { display: flex; gap: 20px; font-size: 12px; color: #64748b; margin-bottom: 20px; flex-wrap: wrap; }
-    .status-badge { display: inline-block; background: ${t.accent}20; color: ${t.primary}; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-    .psych-bar-bg { height: 8px; background: #e2e8f0; border-radius: 9999px; margin-top: 6px; }
-    .psych-bar { height: 100%; border-radius: 9999px; background: ${psychColor}; width: ${psychScore ?? 0}%; }
-    .footer { margin-top: 25px; padding-top: 15px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 10px; color: #94a3b8; }
-    @media print { body { padding: 0; } .page { box-shadow: none; } }
-  </style>
-</head>
-<body>
-  <div class="page">
-    <div class="header">
-      <div class="name">${name}</div>
-      <div class="role">${role}</div>
-      <div class="meta">
-        <span>📍 ${dest}</span>
-        <span>🌍 ${nationality}</span>
-        <span>🆔 ${employee.id?.slice(0, 8) || 'N/A'}</span>
-        <span class="status-badge" style="background:rgba(255,255,255,0.25);color:white">${status}</span>
-      </div>
-    </div>
+  return '<!DOCTYPE html><html' + (isBilingual ? ' lang="en"' : '') + '><head><meta charset="UTF-8"><title>' + name + ' - CV</title><style>' +
+    '*{margin:0;padding:0;box-sizing:border-box}body{background:' + t.bg + ';font-family:' + t.font + ',sans-serif;color:#333;line-height:1.5;padding:15px}' +
+    '.page{max-width:' + (isBilingual ? '1000' : '800') + 'px;margin:0 auto;background:#fff;padding:35px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}' +
+    '.header{background:linear-gradient(135deg,' + t.primary + ',' + t.accent + ');color:#fff;padding:25px 30px;margin:-35px -35px 20px;border-radius:12px 12px 0 0;display:flex;align-items:center;gap:20px}' +
+    '.passport-photo{width:80px;height:100px;border-radius:8px;border:3px solid rgba(255,255,255,0.5);object-fit:cover;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:bold;color:#fff;flex-shrink:0;overflow:hidden}' +
+    '.passport-photo img{width:100%;height:100%;object-fit:cover}' +
+    '.header-text{flex:1}.name{font-size:26px;font-weight:800}.role{font-size:14px;opacity:0.9;margin-top:3px}' +
+    '.meta{margin-top:8px;font-size:11px;opacity:0.85;display:flex;gap:12px;flex-wrap:wrap}' +
+    (isBilingual ? '.bilingual{display:grid;grid-template-columns:1fr 1fr;gap:20px}.ar-section{direction:rtl;text-align:right;font-family:\'Traditional Arabic\',Arial,sans-serif}.ar-section .section-title{text-align:right}.ar-section .card{border-left:none;border-right:3px solid ' + t.accent + '}' : '') +
+    '.section{margin-bottom:18px}' +
+    '.section-title{font-size:13px;font-weight:bold;color:' + t.primary + ';border-bottom:2px solid ' + t.accent + '20;padding-bottom:5px;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px}' +
+    '.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}' +
+    '.card{background:' + t.bg + ';padding:8px 10px;border-radius:6px;border-left:3px solid ' + t.accent + '}' +
+    '.label{font-size:9px;text-transform:uppercase;color:#64748b;font-weight:600;letter-spacing:0.5px}' +
+    '.value{font-size:12px;color:#1e293b;margin-top:1px;font-weight:500}' +
+    '.contact-row{display:flex;gap:15px;font-size:11px;color:#64748b;margin-bottom:15px;flex-wrap:wrap}' +
+    '.status-badge{display:inline-block;background:' + t.accent + '20;color:' + t.primary + ';padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}' +
+    '.full-photo-section{margin-top:20px;margin-bottom:15px;text-align:center}' +
+    '.full-photo-section img{max-width:100%;max-height:300px;border-radius:8px;border:1px solid #e2e8f0}' +
+    '.footer{margin-top:20px;padding-top:12px;border-top:1px solid #e2e8f0;text-align:center;font-size:9px;color:#94a3b8}' +
+    '@media print{body{padding:0}.page{box-shadow:none}}' +
+    '</style></head><body>' +
+    '<div class="page">' +
+    '<div class="header">' +
+    '<div class="passport-photo">' + (employee.photoUrl ? '<img src="' + employee.photoUrl + '" alt="photo"/>' : name.split(' ').map((n:string)=>n[0]).join('').slice(0,2)) + '</div>' +
+    '<div class="header-text">' + (agentHeaderText ? '<div style="font-size:10px;opacity:0.8;margin-bottom:4px">' + agentHeaderText + '</div>' : '') +
+    '<div class="name">' + name + '</div><div class="role">' + role + '</div>' +
+    '<div class="meta"><span>\u{1F4CD} ' + dest + '</span><span>\u{1F30D} ' + nationality + '</span><span>\u{1FAAA} ' + passport + '</span><span class="status-badge" style="background:rgba(255,255,255,0.25);color:#fff">' + status + '</span></div>' +
+    '</div></div>' +
 
-    <div class="contact-row">
-      <span>📧 ${email}</span>
-      <span>📱 ${phone}</span>
-      <span>🪪 Passport: ${passport}</span>
-      <span>📅 DOB: ${dob}</span>
-    </div>
+    (isBilingual ?
+    '<div class="bilingual"><div class="bilingual-col">' +
+    '<div class="section"><div class="section-title">Contact Information</div><div class="contact-row" style="flex-direction:column;gap:6px;margin-bottom:0">' +
+    '<span>\u{1F4E7} ' + email + '</span><span>\u{1F4F1} ' + phone + '</span><span>\u{1FAAA} Passport: ' + passport + '</span><span>\u{1F4C5} DOB: ' + dob + '</span><span>\u{1F4CD} ' + region + '</span></div></div>' +
+    '<div class="section"><div class="section-title">Professional Profile</div><div class="grid">' +
+    '<div class="card"><div class="label">Education</div><div class="value">' + edu + '</div></div>' +
+    '<div class="card"><div class="label">Experience</div><div class="value">' + exp + '</div></div>' +
+    '<div class="card"><div class="label">Languages</div><div class="value">' + lang + '</div></div>' +
+    '<div class="card"><div class="label">Skills</div><div class="value">' + skills + '</div></div></div></div>' +
+    '<div class="section"><div class="section-title">Personal Info</div><div class="grid">' +
+    '<div class="card"><div class="label">Nationality</div><div class="value">' + nationality + '</div></div>' +
+    '<div class="card"><div class="label">Marital Status</div><div class="value">' + maritalStatus + '</div></div>' +
+    '<div class="card"><div class="label">Father</div><div class="value">' + fatherName + '</div></div>' +
+    '<div class="card"><div class="label">Mother</div><div class="value">' + motherName + '</div></div></div></div></div>' +
 
-    <div class="section">
-      <div class="section-title">Professional Profile</div>
-      <div class="grid">
-        <div class="card"><div class="label">Education</div><div class="value">${edu}</div></div>
-        <div class="card"><div class="label">Experience</div><div class="value">${exp}</div></div>
-        <div class="card"><div class="label">Languages</div><div class="value">${lang}</div></div>
-        <div class="card"><div class="label">Skills</div><div class="value">${skills}</div></div>
-      </div>
-    </div>
+    '<div class="bilingual-col ar-section">' +
+    '<div class="section"><div class="section-title">\u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0644\u0627\u062A\u0635\u0627\u0644</div><div class="contact-row" style="flex-direction:column;gap:6px;margin-bottom:0">' +
+    '<span>\u{1F4E7} ' + email + '</span><span>\u{1F4F1} ' + phone + '</span><span>\u{1FAAA} \u062C\u0648\u0627\u0632 \u0627\u0644\u0633\u0641\u0631: ' + passport + '</span><span>\u{1F4C5} \u062A\u0627\u0631\u064A\u062E \u0627\u0644\u0645\u064A\u0644\u0627\u062F: ' + dob + '</span><span>\u{1F4CD} ' + region + '</span></div></div>' +
+    '<div class="section"><div class="section-title">\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0645\u0647\u0646\u064A</div><div class="grid">' +
+    '<div class="card"><div class="label">\u0627\u0644\u0645\u0624\u0647\u0644</div><div class="value">' + edu + '</div></div>' +
+    '<div class="card"><div class="label">\u0627\u0644\u062E\u0628\u0631\u0629</div><div class="value">' + exp + '</div></div>' +
+    '<div class="card"><div class="label">\u0627\u0644\u0644\u063A\u0627\u062A</div><div class="value">' + lang + '</div></div>' +
+    '<div class="card"><div class="label">\u0627\u0644\u0645\u0647\u0627\u0631\u0627\u062A</div><div class="value">' + skills + '</div></div></div></div>' +
+    '<div class="section"><div class="section-title">\u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0634\u062E\u0635\u064A\u0629</div><div class="grid">' +
+    '<div class="card"><div class="label">\u0627\u0644\u062C\u0646\u0633\u064A\u0629</div><div class="value">' + nationality + '</div></div>' +
+    '<div class="card"><div class="label">\u0627\u0644\u062D\u0627\u0644\u0629 \u0627\u0644\u0627\u062C\u062A\u0645\u0627\u0639\u064A\u0629</div><div class="value">' + maritalStatus + '</div></div>' +
+    '<div class="card"><div class="label">\u0627\u0633\u0645 \u0627\u0644\u0623\u0628</div><div class="value">' + fatherName + '</div></div>' +
+    '<div class="card"><div class="label">\u0627\u0633\u0645 \u0627\u0644\u0623\u0645</div><div class="value">' + motherName + '</div></div></div></div></div></div>'
+    :
+    '<div class="contact-row"><span>\u{1F4E7} ' + email + '</span><span>\u{1F4F1} ' + phone + '</span><span>\u{1FAAA} Passport: ' + passport + '</span><span>\u{1F4C5} DOB: ' + dob + '</span></div>' +
+    '<div class="section"><div class="section-title">Professional Profile</div><div class="grid">' +
+    '<div class="card"><div class="label">Education</div><div class="value">' + edu + '</div></div>' +
+    '<div class="card"><div class="label">Experience</div><div class="value">' + exp + '</div></div>' +
+    '<div class="card"><div class="label">Languages</div><div class="value">' + lang + '</div></div>' +
+    '<div class="card"><div class="label">Skills</div><div class="value">' + skills + '</div></div></div></div>' +
+    '<div class="section"><div class="section-title">Personal Info</div><div class="grid-3">' +
+    '<div class="card"><div class="label">Nationality</div><div class="value">' + nationality + '</div></div>' +
+    '<div class="card"><div class="label">Marital Status</div><div class="value">' + maritalStatus + '</div></div>' +
+    '<div class="card"><div class="label">Region</div><div class="value">' + region + '</div></div></div></div>' +
+    '<div class="section"><div class="section-title">Family &amp; Emergency</div><div class="grid">' +
+    '<div class="card"><div class="label">Father</div><div class="value">' + fatherName + '</div></div>' +
+    '<div class="card"><div class="label">Mother</div><div class="value">' + motherName + '</div></div>' +
+    '<div class="card"><div class="label">Emergency Contact</div><div class="value">' + emergencyInfo + '</div></div>' +
+    '<div class="card"><div class="label">Bank Account</div><div class="value">' + bankInfo + '</div></div></div></div>'
+    ) +
 
-    ${psychScore !== null ? `
-    <div class="section">
-      <div class="section-title">🧠 Psychological Suitability Assessment</div>
-      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-        <div>
-          <div class="label">Suitability Score</div>
-          <div style="font-size:28px;font-weight:800;color:${psychColor}">${psychScore}/100</div>
-          <div style="font-size:12px;color:${psychColor};font-weight:600">${psychLabel}</div>
-          <div class="psych-bar-bg"><div class="psych-bar"></div></div>
-        </div>
-        <div style="font-size:12px;color:#64748b;max-width:400px;line-height:1.5">
-          ${psychScore >= 75 ? 'Strong suitability indicators. Employee demonstrates psychological readiness for overseas deployment.' :
-            psychScore >= 50 ? 'Moderate suitability. Pre-departure counseling recommended before final deployment.' :
-            'Higher early-return risk detected. Mandatory counseling session required before proceeding with deployment.'}
-        </div>
-      </div>
-    </div>` : ''}
+    '<div class="full-photo-section">' + (employee.fullPhotoUrl ? '<img src="' + employee.fullPhotoUrl + '" alt="Full body photo"/>' : '<div style="padding:20px;background:' + t.bg + ';border-radius:8px;color:#94a3b8;font-size:12px">\u{1F4F7} Full Body Photo — Available from employee registration</div>') + '</div>' +
 
-    <div class="section">
-      <div class="section-title">Personal Information</div>
-      <div class="grid-3">
-        <div class="card"><div class="label">Marital Status</div><div class="value">${employee.maritalStatus || 'N/A'}</div></div>
-        <div class="card"><div class="label">Father's Name</div><div class="value">${employee.fatherName || 'N/A'}</div></div>
-        <div class="card"><div class="label">Mother's Name</div><div class="value">${employee.motherName || 'N/A'}</div></div>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">Emergency Contact & Bank Details</div>
-      <div class="grid">
-        <div class="card"><div class="label">Emergency Contact</div><div class="value">${emergencyInfo}</div></div>
-        <div class="card"><div class="label">Bank Account</div><div class="value">${bankInfo}</div></div>
-      </div>
-    </div>
-
-    <div class="footer">
-      Generated by Ethio Agency Hub | ${new Date().toLocaleDateString()} | Confidential — Agency Use Only
-    </div>
-  </div>
-</body>
-</html>
-  `.trim();
+    '<div class="footer">' + (agentOpts?.current && agentOpts?.templates[agentOpts.current]?.footer ? agentOpts.templates[agentOpts.current].footer + ' | ' : '') + 'Generated by Ethio Agency Hub | ' + new Date().toLocaleDateString() + ' | Confidential</div>' +
+    '</div></body></html>';
 }

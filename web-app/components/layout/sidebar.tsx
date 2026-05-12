@@ -102,7 +102,10 @@ export function Sidebar({ dict }: Props) {
             const isExpanded = expandedModules.includes(module.title);
             const modActive = isActive(module.href);
             return (
-              <div key={module.title} className="mb-1">
+              <div key={module.title} className="mb-1 group"
+                onMouseEnter={() => { if (module.submenu?.length) toggleModule(module.title); }}
+                onMouseLeave={() => { if (module.submenu?.length && expandedModules.includes(module.title)) toggleModule(module.title); }}
+              >
                 <div className={`flex items-center gap-0 rounded-xl transition-colors ${modActive ? 'bg-brand-50' : ''}`}>
                   <Link href={module.href}
                     className={`flex flex-1 items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${modActive ? 'text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-ink'}`}>
