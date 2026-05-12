@@ -5,7 +5,12 @@ import { LanguageProvider } from '@/components/layout/language-provider';
 import { getSession } from '@/lib/auth/session';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const session = getSession();
+  let session = null;
+  try {
+    session = getSession();
+  } catch {
+    // cookies() not available during SSR/build
+  }
 
   return (
     <SidebarProvider>
