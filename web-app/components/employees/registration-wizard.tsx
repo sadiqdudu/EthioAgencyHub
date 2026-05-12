@@ -814,322 +814,124 @@ export function RegistrationWizard({ initialStep = 0 }: RegistrationWizardProps)
       })()}
 
       {activeTab === 1 && (
-        <div className="space-y-6 mt-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <SelectField
-              label="Education Level"
-              value={skills.education}
-              onChange={(v) => setSkills({ ...skills, education: v })}
-              options={educationLevels}
-            />
-            <SelectField
-              label="Job Role"
-              value={skills.role}
-              onChange={(v) => setSkills({ ...skills, role: v })}
-              options={jobRoles}
-            />
-            <SelectField
-              label="Experience Level"
-              value={skills.experience}
-              onChange={(v) => setSkills({ ...skills, experience: v })}
-              options={experienceLevels}
-            />
-            <SelectField
-              label="Destination Country"
-              value={skills.destination}
-              onChange={(v) => setSkills({ ...skills, destination: v })}
-              options={countries}
-            />
+        <div className="space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Skills &amp; Experience</h4>
+          <div className="grid gap-3 md:grid-cols-2">
+            <SelectField label="Education" value={skills.education} onChange={(v) => setSkills({ ...skills, education: v })} options={educationLevels} />
+            <SelectField label="Job Role" value={skills.role} onChange={(v) => setSkills({ ...skills, role: v })} options={jobRoles} />
+            <SelectField label="Experience" value={skills.experience} onChange={(v) => setSkills({ ...skills, experience: v })} options={experienceLevels} />
+            <SelectField label="Destination" value={skills.destination} onChange={(v) => setSkills({ ...skills, destination: v })} options={countries} />
           </div>
-
-          <div className="space-y-3">
-            <label className="block text-sm font-semibold text-slate-700">Languages (Select multiple by holding Ctrl/Cmd)</label>
-            <select
-              multiple
-              value={skills.languages}
-              onChange={(event) => {
-                const selected = Array.from(event.target.selectedOptions, (option) => option.value);
-                setSkills({ ...skills, languages: selected });
-              }}
-              className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal shadow-sm focus:border-brand-600 focus:outline-none"
-              style={{ minHeight: '100px' }}
-            >
-              {languages.map((lang) => (
-                <option key={lang} value={lang}>
-                  {lang}
-                </option>
-              ))}
+          <div>
+            <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Languages</h4>
+            <select multiple value={skills.languages} onChange={(e) => { const selected = Array.from(e.target.selectedOptions, (o) => o.value); setSkills({ ...skills, languages: selected }); }}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-600 focus:outline-none" style={{ minHeight: '80px' }}>
+              {languages.map((lang) => (<option key={lang} value={lang}>{lang}</option>))}
             </select>
             {skills.languages.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1 mt-2">
                 {skills.languages.map((lang) => (
-                  <span key={lang} className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+                  <span key={lang} className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700">
                     {lang}
-                    <button
-                      type="button"
-                      onClick={() => setSkills({ ...skills, languages: skills.languages.filter((l) => l !== lang) })}
-                      className="hover:text-brand-900"
-                    >
-                      ✕
-                    </button>
+                    <button type="button" onClick={() => setSkills({ ...skills, languages: skills.languages.filter((l) => l !== lang) })} className="hover:text-brand-900">✕</button>
                   </span>
                 ))}
               </div>
             )}
           </div>
-
-          <TextField
-            label="Additional Skills (comma separated)"
-            value={skills.additionalSkills}
-            onChange={(v) => setSkills({ ...skills, additionalSkills: v })}
-            placeholder="e.g., First aid, Cooking, Childcare"
-          />
+          <TextField label="Additional Skills" value={skills.additionalSkills} onChange={(v) => setSkills({ ...skills, additionalSkills: v })} placeholder="e.g., First aid, Cooking, Childcare" />
         </div>
       )}
 
-
       {activeTab === 3 && (
-        <div className="space-y-5">
-          {/* Photo & Documents */}
-          <div>
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Photo & Documents</h4>
-            <div className="flex flex-col gap-3">
-              {docs.docPath ? (
-                <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-emerald-800">Document uploaded</p>
-                    <p className="truncate text-xs text-emerald-700">{docs.docPath}</p>
-                  </div>
-                  <button type="button" onClick={() => setDocs({ ...docs, docPath: '' })} className="text-slate-400 hover:text-red-500">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <label className={`flex w-full cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed px-5 py-4 transition-colors ${
-                  uploadingFiles ? 'border-brand-300 bg-brand-50' : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-white'
-                }`}>
-                  {uploadingFiles ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-brand-500 shrink-0" />
-                  ) : (
-                    <Upload className="h-6 w-6 text-slate-400 shrink-0" />
-                  )}
-                  <div>
-                    <p className="text-sm font-semibold text-slate-700">
-                      {uploadingFiles ? 'Uploading...' : 'Upload Photo / Passport Copy'}
-                    </p>
-                    <p className="text-xs text-slate-400">JPG, PNG, PDF — max 10MB</p>
-                  </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*,application/pdf"
-                    disabled={uploadingFiles}
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      setUploadingFiles(true);
-                      setUploadError(null);
-                      try {
-                        const fd = new FormData();
-                        fd.append('file', file);
-                        fd.append('folder', 'documents');
-                        const res = await fetch('/api/upload', { method: 'POST', body: fd });
-                        const data = await res.json();
-                        if (data.success && data.data?.filePath) {
-                          setDocs(d => ({ ...d, docPath: data.data.filePath }));
-                        } else {
-                          setUploadError(data.error?.message || 'Upload failed');
-                        }
-                      } catch (err) {
-                        setUploadError('Upload failed. Please try again.');
-                      } finally {
-                        setUploadingFiles(false);
-                      }
-                    }}
-                  />
-                </label>
-              )}
-              <TextField
-                label="Or enter Teledrive path manually"
-                value={docs.docPath}
-                onChange={(v) => setDocs({ ...docs, docPath: v })}
-                placeholder="e.g., /documents/employee_photo.jpg"
-              />
-              {uploadError && (
-                <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-                  <AlertTriangle className="h-4 w-4" />
-                  {uploadError}
-                  <button onClick={() => setUploadError(null)} className="ml-auto text-red-400 hover:text-red-700">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
+        <div className="space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Photo &amp; Documents</h4>
+          {docs.docPath ? (
+            <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+              <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-emerald-800">Uploaded</p><p className="truncate text-xs text-emerald-700">{docs.docPath}</p></div>
+              <button type="button" onClick={() => setDocs({ ...docs, docPath: '' })} className="text-slate-400 hover:text-red-500"><X className="h-4 w-4" /></button>
             </div>
-          </div>
+          ) : (
+            <label className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed px-4 py-3 ${uploadingFiles ? 'border-brand-300 bg-brand-50' : 'border-slate-300 hover:border-slate-400'}`}>
+              {uploadingFiles ? <Loader2 className="h-5 w-5 animate-spin text-brand-500" /> : <Upload className="h-5 w-5 text-slate-400" />}
+              <div><p className="text-sm font-semibold text-slate-700">{uploadingFiles ? 'Uploading...' : 'Upload Photo / Passport'}</p><p className="text-xs text-slate-400">JPG, PNG, PDF — max 10MB</p></div>
+              <input type="file" className="hidden" accept="image/*,application/pdf" disabled={uploadingFiles} onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; setUploadingFiles(true); setUploadError(null); try { const fd = new FormData(); fd.append('file', file); fd.append('folder', 'documents'); const res = await fetch('/api/upload', { method: 'POST', body: fd }); const data = await res.json(); if (data.success && data.data?.filePath) setDocs(d => ({ ...d, docPath: data.data.filePath })); else setUploadError(data.error?.message || 'Upload failed'); } catch { setUploadError('Upload failed'); } finally { setUploadingFiles(false); } }} />
+            </label>
+          )}
+          <TextField label="Or enter path manually" value={docs.docPath} onChange={(v) => setDocs({ ...docs, docPath: v })} placeholder="/documents/photo.jpg" />
+          {uploadError && <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600"><AlertTriangle className="h-4 w-4" />{uploadError}<button onClick={() => setUploadError(null)} className="ml-auto text-red-400"><X className="h-4 w-4" /></button></div>}
 
-          {/* Interview Video */}
-          <div className="rounded-2xl border border-purple-200 bg-purple-50/50 p-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="rounded-xl bg-purple-100 p-2 text-purple-600">
-                <Video className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-ink">Interview Video</h4>
-                <p className="text-xs text-purple-600">Short introduction video for overseas employers</p>
-              </div>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mt-2">Interview Video</h4>
+          {docs.tgVideoId ? (
+            <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+              <div className="flex-1"><p className="text-sm font-semibold text-emerald-800">Interview uploaded</p><p className="text-xs text-emerald-700">ID: {docs.tgVideoId}</p></div>
+              <button onClick={() => setDocs({ ...docs, tgVideoId: '' })} className="text-slate-400 hover:text-red-500"><X className="h-4 w-4" /></button>
             </div>
-
-            {docs.tgVideoId ? (
-              <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-emerald-800">Interview uploaded!</p>
-                  <p className="text-xs text-emerald-700">Telegram ID: {docs.tgVideoId}</p>
-                </div>
-                <button type="button" onClick={() => setDocs({ ...docs, tgVideoId: '' })} className="text-slate-400 hover:text-red-500">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setShowInterviewModal(true)}
-                  className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-purple-300 bg-white p-4 hover:bg-purple-50 transition-colors"
-                >
-                  <Video className="h-7 w-7 text-purple-500 mb-2" />
-                  <span className="text-sm font-semibold text-purple-700">Record via Telegram</span>
-                  <span className="text-xs text-purple-400">Send through bot</span>
-                </button>
-                <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white p-4 hover:bg-slate-50 cursor-pointer transition-colors">
-                  <Upload className="h-7 w-7 text-slate-400 mb-2" />
-                  <span className="text-sm font-semibold text-slate-600">Upload Video File</span>
-                  <span className="text-xs text-slate-400">MP4, MOV, AVI</span>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="video/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      setInterviewUploading(true);
-                      try {
-                        const fd = new FormData();
-                        fd.append('video', file);
-                        fd.append('employeeName', `${personal.firstName} ${personal.lastName}`);
-                        const res = await fetch('/api/telegram/interview', { method: 'POST', body: fd });
-                        const data = await res.json();
-                        if (data.success && data.data?.fileId) {
-                          setDocs(d => ({ ...d, tgVideoId: data.data.fileId }));
-                        }
-                      } catch (err) {
-                        console.error('Upload failed:', err);
-                      } finally {
-                        setInterviewUploading(false);
-                      }
-                    }}
-                  />
-                </label>
-              </div>
-            )}
-            {interviewUploading && (
-              <div className="mt-3 flex items-center gap-2 text-sm text-purple-700">
-                <Loader2 className="h-4 w-4 animate-spin" /> Uploading to Telegram...
-              </div>
-            )}
-            <p className="mt-3 text-xs text-slate-400">Stored privately in your Telegram channel. Accessible to authorized partners only.</p>
-          </div>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button type="button" onClick={() => setShowInterviewModal(true)} className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-purple-300 bg-white p-3 hover:bg-purple-50">
+                <Video className="h-5 w-5 text-purple-500" /><span className="text-sm font-semibold text-purple-700">Record via Telegram</span>
+              </button>
+              <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-white p-3 hover:bg-slate-50 cursor-pointer">
+                <Upload className="h-5 w-5 text-slate-400" /><span className="text-sm font-semibold text-slate-600">Upload Video</span>
+                <input type="file" className="hidden" accept="video/*" onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; setInterviewUploading(true); try { const fd = new FormData(); fd.append('video', file); fd.append('employeeName', `${personal.firstName} ${personal.lastName}`); const res = await fetch('/api/telegram/interview', { method: 'POST', body: fd }); const data = await res.json(); if (data.success && data.data?.fileId) setDocs(d => ({ ...d, tgVideoId: data.data.fileId })); } catch { } finally { setInterviewUploading(false); } }} />
+              </label>
+            </div>
+          )}
+          {interviewUploading && <div className="flex items-center gap-2 text-sm text-purple-700"><Loader2 className="h-4 w-4 animate-spin" /> Uploading to Telegram...</div>}
         </div>
       )}
 
       {activeTab === 4 && (
-        <div className="space-y-6">
-          <div className="rounded-2xl bg-brand-50 p-4">
-            <h3 className="mb-3 font-semibold text-ink">👤 Personal Information</h3>
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+        <div className="space-y-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <h4 className="text-xs font-bold uppercase text-brand-600 mb-2">Personal Info &amp; IDs</h4>
+            <div className="grid gap-2 text-sm text-slate-700 md:grid-cols-3">
               <p><strong>First Name:</strong> {personal.firstName || '-'}</p>
               <p><strong>Last Name:</strong> {personal.lastName || '-'}</p>
               <p><strong>Email:</strong> {personal.email || '-'}</p>
-              <p><strong>Date of Birth:</strong> {personal.dateOfBirth || '-'}</p>
+              <p><strong>DOB:</strong> {personal.dateOfBirth || '-'}</p>
               <p><strong>Gender:</strong> {personal.gender || '-'}</p>
-              <p><strong>Marital Status:</strong> {personal.maritalStatus || '-'}</p>
+              <p><strong>Marital:</strong> {personal.maritalStatus || '-'}</p>
               <p><strong>Nationality:</strong> {personal.nationality || '-'}</p>
               <p><strong>Region:</strong> {personal.region || '-'}</p>
               <p><strong>Zone:</strong> {personal.zone || '-'}</p>
-              <p><strong>Contact Phone:</strong> {personal.contactPhone || '-'}</p>
-              <p><strong>Alternate Phone:</strong> {personal.alternatePhone || '-'}</p>
-              <p><strong>Emergency Contact:</strong> {personal.emergencyContact || '-'}</p>
-              <p><strong>Emergency Phone:</strong> {personal.emergencyPhone || '-'}</p>
-              <p><strong>Relationship:</strong> {personal.emergencyRelation || '-'}</p>
+              <p><strong>Phone:</strong> {personal.contactPhone || '-'}</p>
+              <p><strong>Alt Phone:</strong> {personal.alternatePhone || '-'}</p>
+              <p><strong>Emergency:</strong> {personal.emergencyContact || '-'} ({personal.emergencyRelation || '-'})</p>
             </div>
           </div>
-
-          <div className="rounded-2xl bg-blue-50 p-4">
-            <h3 className="mb-3 font-semibold text-ink">📋 Official IDs & Passport</h3>
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <h4 className="text-xs font-bold uppercase text-blue-600 mb-2">Passport &amp; IDs</h4>
+            <div className="grid gap-2 text-sm text-slate-700 md:grid-cols-4">
+              <p><strong>Passport:</strong> {personal.passportNumber || '-'}</p>
+              <p><strong>Expiry:</strong> {personal.passportExpiryDate || '-'}</p>
               <p><strong>National ID:</strong> {personal.nationalId || '-'}</p>
               <p><strong>Labor ID:</strong> {personal.laborId || '-'}</p>
-              <p><strong>Passport Number:</strong> {personal.passportNumber || '-'}</p>
-              <p><strong>Passport Expiry:</strong> {personal.passportExpiryDate || '-'}</p>
             </div>
           </div>
-
-          <div className="rounded-2xl bg-purple-50 p-4">
-            <h3 className="mb-3 font-semibold text-ink">👨‍👩‍👧 Family Information</h3>
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-              <p><strong>Father's Name:</strong> {personal.fatherName || '-'}</p>
-              <p><strong>Mother's Name:</strong> {personal.motherName || '-'}</p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-teal-50 p-4">
-            <h3 className="mb-3 font-semibold text-ink">🏦 Bank Account</h3>
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <h4 className="text-xs font-bold uppercase text-emerald-600 mb-2">Skills &amp; Bank</h4>
+            <div className="grid gap-2 text-sm text-slate-700 md:grid-cols-3">
+              <p><strong>Education:</strong> {skills.education || '-'}</p>
+              <p><strong>Role:</strong> {skills.role || '-'}</p>
+              <p><strong>Experience:</strong> {skills.experience || '-'}</p>
+              <p><strong>Destination:</strong> {skills.destination || '-'}</p>
+              <p><strong>Languages:</strong> {skills.languages.join(', ') || '-'}</p>
+              <p><strong>Skills:</strong> {skills.additionalSkills || '-'}</p>
               <p><strong>Bank:</strong> {personal.bankName || '-'}</p>
-              <p><strong>Account No:</strong> {personal.bankAccountNumber || '-'}</p>
+              <p><strong>Account:</strong> {personal.bankAccountNumber || '-'}</p>
               <p><strong>Branch:</strong> {personal.bankBranch || '-'}</p>
             </div>
           </div>
-
-          <div className="rounded-2xl bg-violet-50 p-4">
-            <h3 className="mb-3 font-semibold text-ink">🧠 Psychology Assessment</h3>
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-              <p><strong>Questions Answered:</strong> {Object.keys(psychology).length}/{PSYCH_QUESTIONS.length}</p>
-              <p><strong>Suitability Score:</strong> {PSYCH_QUESTIONS.length > 0 ? Math.round((Object.values(psychology).reduce((a,b)=>a+b,0) / (PSYCH_QUESTIONS.length * 3)) * 100) : 0}%</p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-emerald-50 p-4">
-            <h3 className="mb-3 font-semibold text-ink">💼 Skills & Qualifications</h3>
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-              <p><strong>Education:</strong> {skills.education || '-'}</p>
-              <p><strong>Job Role:</strong> {skills.role || '-'}</p>
-              <p><strong>Experience:</strong> {skills.experience || '-'}</p>
-              <p><strong>Destination:</strong> {skills.destination || '-'}</p>
-              <div className="md:col-span-2">
-                <strong>Languages:</strong>
-                {skills.languages.length > 0 ? (
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    {skills.languages.map((lang) => (
-                      <span key={lang} className="inline-block rounded-full bg-emerald-200 px-2 py-1 text-xs">
-                        {lang}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-1">-</p>
-                )}
-              </div>
-              <p className="md:col-span-2"><strong>Additional Skills:</strong> {skills.additionalSkills || '-'}</p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-cyan-50 p-4">
-            <h3 className="mb-3 font-semibold text-ink">📁 Documents</h3>
-            <div className="space-y-2 text-sm text-slate-700">
-              <p><strong>Document path:</strong> {docs.docPath || '-'}</p>
-              <p><strong>Interview video ID:</strong> {docs.tgVideoId || '-'}</p>
+          <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
+            <h4 className="text-xs font-bold uppercase text-violet-600 mb-2">Assessment &amp; Documents</h4>
+            <div className="grid gap-2 text-sm text-slate-700 md:grid-cols-3">
+              <p><strong>Psychology:</strong> {Object.keys(psychology).length}/{PSYCH_QUESTIONS.length} ({PSYCH_QUESTIONS.length > 0 ? Math.round((Object.values(psychology).reduce((a,b)=>a+b,0) / (PSYCH_QUESTIONS.length * 3)) * 100) : 0}%)</p>
+              <p><strong>Document:</strong> {docs.docPath || '-'}</p>
+              <p><strong>Interview:</strong> {docs.tgVideoId || '-'}</p>
             </div>
           </div>
         </div>
